@@ -1,6 +1,8 @@
 # FFmpeg.NET
 A .NET Wrapper for FFmpeg
 
+[NuGet Package](https://www.nuget.org/packages/EmergenceGuardian.FFmpeg/)
+
 ## Features
 - Manages processes programatically (start, track, cancel)
 - Parses FFmpeg's output to track progress and create a rich user interface
