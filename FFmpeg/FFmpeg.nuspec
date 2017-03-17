@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>EmergenceGuardian.FFmpeg</id>
+    <version>1.0.0.0</version>
+    <title>FFmpeg.NET</title>
+    <authors>Etienne Charland</authors>
+    <owners>Etienne Charland</owners>
+    <licenseUrl>https://github.com/mysteryx93/FFmpeg.NET/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/mysteryx93/FFmpeg.NET</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>.NET Wrapper for FFmpeg</description>
+    <releaseNotes>Initial release.</releaseNotes>
+    <copyright>Copyright 2017, Emergence Guardian</copyright>
+    <tags>ffmpeg ffmpeg-wrapper video-encoding video library .net</tags>
+  </metadata>
+</package>
