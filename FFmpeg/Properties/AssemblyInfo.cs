@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("C# FFmpeg")]
-[assembly: AssemblyDescription(".NET wrapper for FFmpeg")]
+[assembly: AssemblyTitle("FFmpeg.NET")]
+[assembly: AssemblyDescription(".NET Wrapper for FFmpeg")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Emergence Guardian")]
-[assembly: AssemblyProduct("C# FFmpeg")]
+[assembly: AssemblyProduct("FFmpeg.NET")]
 [assembly: AssemblyCopyright("Copyright © 2017, Emergence Guardian")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

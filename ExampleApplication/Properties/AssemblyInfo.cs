@@ -7,11 +7,11 @@ using System.Windows;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("C# FFmpeg ExampleApplication")]
-[assembly: AssemblyDescription("Example application for C# FFmpeg")]
+[assembly: AssemblyTitle("FFmpeg.NET ExampleApplication")]
+[assembly: AssemblyDescription("Example application for FFmpeg.NET")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Emergence Guardian")]
-[assembly: AssemblyProduct("C# FFmpeg")]
+[assembly: AssemblyProduct("FFmpeg.NET")]
 [assembly: AssemblyCopyright("Copyright © 2017, Emergence Guardian")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
