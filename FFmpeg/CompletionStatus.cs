@@ -4,7 +4,7 @@ namespace EmergenceGuardian.FFmpeg {
     /// <summary>
     /// Represents the process completion status.
     /// </summary>
-    public enum CompletedStatus {
+    public enum CompletionStatus {
         /// <summary>
         /// Process is not yet completed.
         /// </summary>
@@ -20,6 +20,10 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Process has been cancelled by the user.
         /// </summary>
-        Cancelled
+        Cancelled,
+        /// <summary>
+        /// Process was stopped after a timeout.
+        /// </summary>
+        Timeout
     }
 }

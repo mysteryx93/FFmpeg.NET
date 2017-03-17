@@ -16,7 +16,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="destination">The destination file, ending with .AVI</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletedStatus ConvertToAvi(string source, string destination, ProcessStartOptions options) {
+        public static CompletionStatus ConvertToAvi(string source, string destination, ProcessStartOptions options) {
             // -vcodec huffyuv or utvideo, -acodec pcm_s16le
             return Encode(source, "utvideo", "pcm_s16le", null, destination, options);
         }
@@ -31,7 +31,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletedStatus Encode(string source, string videoCodec, string audioCodec, string encodeArgs, string destination, ProcessStartOptions options) {
+        public static CompletionStatus Encode(string source, string videoCodec, string audioCodec, string encodeArgs, string destination, ProcessStartOptions options) {
             string[] VideoCodecList = string.IsNullOrEmpty(videoCodec) ? null : new string[] { videoCodec };
             string[] AudioCodecList = string.IsNullOrEmpty(audioCodec) ? null : new string[] { audioCodec };
             return Encode(source, VideoCodecList, AudioCodecList, encodeArgs, destination, options);
@@ -47,7 +47,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletedStatus Encode(string source, string[] videoCodec, string[] audioCodec, string encodeArgs, string destination, ProcessStartOptions options) {
+        public static CompletionStatus Encode(string source, string[] videoCodec, string[] audioCodec, string encodeArgs, string destination, ProcessStartOptions options) {
             File.Delete(destination);
             StringBuilder Query = new StringBuilder();
             Query.Append("-y -i ");
@@ -65,7 +65,7 @@ namespace EmergenceGuardian.FFmpeg {
             if (videoCodec == null || videoCodec.Length == 0)
                 Query.Append(" -vn");
             else if (videoCodec.Length == 1) {
-                Query.Append(" -vcodec");
+                Query.Append(" -vcodec ");
                 Query.Append(videoCodec[0]);
             } else {
                 for (int i = 0; i < videoCodec.Length; i++) {
@@ -80,7 +80,7 @@ namespace EmergenceGuardian.FFmpeg {
             if (audioCodec == null || audioCodec.Length == 0)
                 Query.Append(" -an");
             else if (audioCodec.Length == 1) {
-                Query.Append(" -acodec");
+                Query.Append(" -acodec ");
                 Query.Append(audioCodec[0]);
             } else {
                 for (int i = 0; i < audioCodec.Length; i++) {
@@ -102,11 +102,9 @@ namespace EmergenceGuardian.FFmpeg {
 
             // Run FFmpeg with query.
             FFmpegProcess Worker = new FFmpeg.FFmpegProcess(options);
-            CompletedStatus Result = SourceAvisynth ? 
+            CompletionStatus Result = SourceAvisynth ? 
                 Worker.RunAvisynthToFFmpeg(source, Query.ToString()) : 
                 Worker.RunFFmpeg(Query.ToString());
-            if (Result != CompletedStatus.Success)
-                File.Delete(destination);
             return Result;
         }
         

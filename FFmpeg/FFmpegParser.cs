@@ -24,10 +24,15 @@ namespace EmergenceGuardian.FFmpeg {
             string DurationLine = OutLines.FirstOrDefault(l => l.StartsWith(DurationTag));
             if (DurationLine != null) {
                 string[] DurationInfo = DurationLine.Trim().Split(new string[] { ", " }, StringSplitOptions.None);
-                try {
-                    fileDuration = TimeSpan.Parse(DurationInfo[0].Split(' ')[1], CultureInfo.InvariantCulture);
-                }
-                catch {
+                string DurationString = DurationInfo[0].Split(' ')[1];
+                if (DurationString == "N/A")
+                    fileDuration = new TimeSpan(0);
+                else {
+                    try {
+                        fileDuration = TimeSpan.Parse(DurationString, CultureInfo.InvariantCulture);
+                    }
+                    catch {
+                    }
                 }
             }
 
@@ -48,8 +53,20 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="item">A line of text to parse.</param>
         /// <returns>The stream info, or null if parsing failed.</returns>
         internal static FFmpegStreamInfo ParseStreamInfo(string item) {
-            // Remove parenthesis contents from string.
-            item = Regex.Replace(item, @" ?\(.*?\)", string.Empty);
+            item = item.TrimEnd();
+            string RawText = item;
+            // Within parenthesis, replace ',' with ';' to be able to split properly.
+            char[] itemChars = item.ToCharArray();
+            bool isInParenthesis = false;
+            for (int i=0; i<itemChars.Length; i++) {
+                if (itemChars[i] == '(')
+                    isInParenthesis = true;
+                else if (itemChars[i] == ')')
+                    isInParenthesis = false;
+                if (isInParenthesis && itemChars[i] == ',')
+                    itemChars[i] = ';';
+            }
+            item = new string(itemChars);
 
             int PosStart = 14;
             int PosEnd = -1;
@@ -73,30 +90,44 @@ namespace EmergenceGuardian.FFmpeg {
             string[] StreamInfo = item.Substring(PosStart).Split(new string[] { ", " }, StringSplitOptions.None);
             if (StreamInfo.Count() == 0)
                 return null;
-            string StreamFormat = StreamInfo[0];
+            string StreamFormat = StreamInfo[0].Split(' ')[0];
 
             if (StreamType == "Video") {
                 FFmpegVideoStreamInfo V = new FFmpegVideoStreamInfo();
+                V.RawText = RawText;
                 V.Index = StreamIndex;
                 V.Format = StreamFormat;
 
                 // Stream #0:0[0x1e0]: Video: mpeg1video, yuv420p(tv), 352x288 [SAR 178:163 DAR 1958:1467], 1152 kb/s, 25 fps, 25 tbr, 90k tbn
                 try {
-                    V.ColorSpace = StreamInfo[1];
+                    string[] ColorSpaceValues = StreamInfo[1].Split('(', ')');
+                    V.ColorSpace = ColorSpaceValues[0];
+                    if (ColorSpaceValues.Length > 1) {
+                        string[] ColorRange = ColorSpaceValues[1].Split(';');
+                        if (ColorRange.Any(c => c == "tv"))
+                            V.ColorRange = "tv";
+                        else if (ColorRange.Any(c => c == "pc"))
+                            V.ColorRange = "pc";
+                        if (ColorRange.Any(c => c == "bt601"))
+                            V.ColorRange = "bt601";
+                        if (ColorRange.Any(c => c == "bt709"))
+                            V.ColorRange = "bt709";
+                    }
                     string[] Size = StreamInfo[2].Split(new string[] { "x", " [", ":", " ", "]" }, StringSplitOptions.None);
                     V.Width = int.Parse(Size[0], CultureInfo.InvariantCulture);
                     V.Height = int.Parse(Size[1], CultureInfo.InvariantCulture);
                     if (Size.Length > 2 && Size[2] == "SAR") {
                         V.SAR1 = int.Parse(Size[3], CultureInfo.InvariantCulture);
                         V.SAR2 = int.Parse(Size[4], CultureInfo.InvariantCulture);
-                        V.PixelAspectRatio = (double)V.SAR1 / V.SAR2;
+                        V.PixelAspectRatio = Math.Round((double)V.SAR1 / V.SAR2, 3);
                         V.DAR1 = int.Parse(Size[6], CultureInfo.InvariantCulture);
                         V.DAR2 = int.Parse(Size[7], CultureInfo.InvariantCulture);
-                        V.DisplayAspectRatio = (double)V.DAR1 / V.DAR2;
+                        V.DisplayAspectRatio = Math.Round((double)V.DAR1 / V.DAR2, 3);
                     }
                     string Fps = StreamInfo.First(s => s.EndsWith("fps"));
                     Fps = Fps.Substring(0, Fps.Length - 4);
-                    V.FrameRate = double.Parse(Fps, CultureInfo.InvariantCulture);
+                    if (Fps != "1k") // sometimes it returns 1k ?
+                        V.FrameRate = double.Parse(Fps, CultureInfo.InvariantCulture);
                 }
                 catch {
                 }
@@ -104,6 +135,7 @@ namespace EmergenceGuardian.FFmpeg {
                 return V;
             } else if (StreamType == "Audio") {
                 FFmpegAudioStreamInfo V = new FFmpegAudioStreamInfo();
+                V.RawText = RawText;
                 V.Index = StreamIndex;
                 V.Format = StreamFormat;
 
@@ -111,9 +143,9 @@ namespace EmergenceGuardian.FFmpeg {
                 try {
                     V.SampleRate = int.Parse(StreamInfo[1].Split(' ')[0], CultureInfo.InvariantCulture);
                     V.Channels = StreamInfo[2];
-                    V.BitDepth = StreamInfo[3].TrimEnd();
-                    if (StreamInfo.Length > 4)
-                        V.Bitrate = StreamInfo[4].TrimEnd();
+                    V.BitDepth = StreamInfo[3];
+                    if (StreamInfo.Length > 4 && StreamInfo[4].Contains(" kb/s"))
+                        V.Bitrate = int.Parse(StreamInfo[4].Split(' ')[0]);
                 }
                 catch {
                 }
@@ -138,7 +170,9 @@ namespace EmergenceGuardian.FFmpeg {
                 Result.Size = Values[4].TrimStart().Split(' ')[0];
                 Result.Time = TimeSpan.Parse(Values[5].TrimStart().Split(' ')[0], CultureInfo.InvariantCulture);
                 Result.Bitrate = Values[6].TrimStart().Split(' ')[0];
-                Result.Speed = float.Parse(Values[7].TrimStart().Split('x')[0], CultureInfo.InvariantCulture);
+                string SpeedString = Values[7].Trim().Split('x')[0];
+                if (SpeedString != "N/A")
+                    Result.Speed = float.Parse(SpeedString, CultureInfo.InvariantCulture);
             }
             catch {
             }

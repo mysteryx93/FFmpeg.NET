@@ -5,10 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:EmergenceGuardian.FFmpegExampleApplication"
         mc:Ignorable="d"
-        Title="C# FFmpeg Example Application" Height="140" Width="561">
+        Title="C# FFmpeg Example Application" Height="152" Width="369" ResizeMode="NoResize">
     <Grid>
-        <Button x:Name="RunButton" Content="_Run" HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top" Width="100" TabIndex="2" Click="RunButton_Click"/>
-        <TextBox x:Name="ArgTextBox" Margin="10,31,10,0" Text="-i &quot;F:\AVSMeter\TestAudio.mpg&quot; -vcodec utvideo -acodec pcm_s16le -y &quot;F:\AVSMeter\TestAudio.avi&quot;" VerticalAlignment="Top" TabIndex="1"/>
-        <TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" Text="FFmpeg arguments" VerticalAlignment="Top"/>
+        <TextBox x:Name="SourceTextBox" Margin="79,12,0,0" VerticalAlignment="Top" TabIndex="1" HorizontalAlignment="Left" Width="239" Height="21" VerticalContentAlignment="Center"/>
+        <TextBlock HorizontalAlignment="Left" Margin="10,13,0,0" Text="Source" VerticalAlignment="Top"/>
+        <TextBox x:Name="DestinationTextBox" Margin="79,38,0,0" VerticalAlignment="Top" TabIndex="3" HorizontalAlignment="Left" Width="239" Height="21" VerticalContentAlignment="Center"/>
+        <TextBlock HorizontalAlignment="Left" Margin="10,39,0,0" Text="Destination" VerticalAlignment="Top"/>
+        <Button x:Name="BrowseSource" Content="..." HorizontalAlignment="Left" Margin="318,12,0,0" VerticalAlignment="Top" Width="22" Height="21" TabIndex="2" IsEnabled="{Binding IsMpcPlayer, ElementName=window}" Click="BrowseSource_Click" />
+        <Button x:Name="BrowseDestination" Content="..." HorizontalAlignment="Left" Margin="318,38,0,0" VerticalAlignment="Top" Width="22" Height="21" TabIndex="4" IsEnabled="{Binding IsMpcPlayer, ElementName=window}" Click="BrowseDestination_Click" />
+        <TextBlock HorizontalAlignment="Left" Margin="10,60,0,0" Text="Extract audio, encode audio and video separately, and muxe" VerticalAlignment="Top"/>
+        <Button x:Name="RunSimpleButton" Content="_Simple" HorizontalAlignment="Left" Margin="79,81,0,0" VerticalAlignment="Top" Width="100" TabIndex="5" Click="RunSimpleButton_Click" />
+        <Button x:Name="RunComplexButton" Content="_Complex" HorizontalAlignment="Left" Margin="240,81,0,0" VerticalAlignment="Top" Width="100" TabIndex="6" Click="RunComplexButton_Click" />
     </Grid>
 </Window>

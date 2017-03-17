@@ -10,12 +10,12 @@ namespace EmergenceGuardian.FFmpeg {
     /// Provides progress information for the ProgressUpdated event.
     /// </summary>
     public class CompletedEventArgs : EventArgs {
-        public CompletedStatus Status { get; set; }
+        public CompletionStatus Status { get; set; }
 
         public CompletedEventArgs() {
         }
 
-        public CompletedEventArgs(CompletedStatus status) {
+        public CompletedEventArgs(CompletionStatus status) {
             Status = status;
         }
     }

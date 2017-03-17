@@ -8,6 +8,7 @@ namespace EmergenceGuardian.FFmpeg {
     /// Base class for FFmpegVideoStream and FFmpegAudioStream representing a file stream.
     /// </summary>
     public abstract class FFmpegStreamInfo {
+        public string RawText { get; set; }
         public int Index { get; set; }
         public string Format { get; set; }
 
@@ -26,6 +27,8 @@ namespace EmergenceGuardian.FFmpeg {
     /// </summary>
     public class FFmpegVideoStreamInfo : FFmpegStreamInfo {
         public string ColorSpace { get; set; }
+        public string ColorRange { get; set; }
+        public string ColorMatrix { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         public int SAR1 { get; set; }
@@ -35,6 +38,7 @@ namespace EmergenceGuardian.FFmpeg {
         public double PixelAspectRatio { get; set; }
         public double DisplayAspectRatio { get; set; }
         public double FrameRate { get; set; }
+        public int BitDepth { get; set; } = 8;
     }
 
     /// <summary>
@@ -44,14 +48,14 @@ namespace EmergenceGuardian.FFmpeg {
         public int SampleRate { get; set; }
         public string Channels { get; set; }
         public string BitDepth { get; set; }
-        public string Bitrate { get; set; }
+        public int Bitrate { get; set; }
     }
 
     /// <summary>
     /// Contains progress information returned from FFmpeg's output.
     /// </summary>
     public class FFmpegProgress {
-        public int Frame { get; set; }
+        public long Frame { get; set; }
         public float Fps { get; set; }
         public float Quantizer { get; set; }
         public string Size { get; set; }

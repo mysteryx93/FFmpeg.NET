@@ -71,13 +71,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="ErrorWindow.xaml.cs">
-      <DependentUpon>ErrorWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="UserInterfaceManager.cs" />
-    <Page Include="ErrorWindow.xaml">
-      <SubType>Designer</SubType>
+    <Page Include="FFmpegErrorWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="FFmpegWindow.xaml">
       <SubType>Designer</SubType>
@@ -91,6 +87,10 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="FFmpegErrorWindow.xaml.cs">
+      <DependentUpon>FFmpegErrorWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="FFmpegUserInterfaceManager.cs" />
     <Compile Include="FFmpegWindow.xaml.cs">
       <DependentUpon>FFmpegWindow.xaml</DependentUpon>
     </Compile>

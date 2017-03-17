@@ -15,10 +15,21 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="videoFile">The file containing the video.</param>
         /// <param name="audioFile">The file containing the audio.</param>
         /// <param name="destination">The destination file.</param>
+        /// <returns>The process completion status.</returns>
+        public static CompletionStatus Muxe(string videoFile, string audioFile, string destination) {
+            return Muxe(videoFile, audioFile, destination, null);
+        }
+
+        /// <summary>
+        /// Merges specified audio and video files.
+        /// </summary>
+        /// <param name="videoFile">The file containing the video.</param>
+        /// <param name="audioFile">The file containing the audio.</param>
+        /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletedStatus Muxe(string videoFile, string audioFile, string destination, ProcessStartOptions options) {
-            CompletedStatus Result = CompletedStatus.Success;
+        public static CompletionStatus Muxe(string videoFile, string audioFile, string destination, ProcessStartOptions options) {
+            CompletionStatus Result = CompletionStatus.Success;
             File.Delete(destination);
 
             // FFMPEG fails to muxe H264 into MKV container. Converting to MP4 and then muxing with the audio, however, works.
@@ -28,16 +39,16 @@ namespace EmergenceGuardian.FFmpeg {
                 Result = Muxe(OriginalVideoFile, null, videoFile, options);
             }
 
-            if (Result == CompletedStatus.Success) {
+            if (Result == CompletionStatus.Success) {
                 // Join audio and video files.
                 FFmpegProcess Worker = new FFmpegProcess(options);
                 // FFMPEG-encoded AAC streams are invalid and require an extra flag to join.
-                bool FixAac = audioFile.ToLower().EndsWith(".aac");
+                bool FixAac = audioFile != null ? audioFile.ToLower().EndsWith(".aac") : false;
                 string Query;
                 if (string.IsNullOrEmpty(audioFile))
-                    Query = string.Format(@"-y -i ""{0}"" -vcodec copy ""{2}""", videoFile, destination);
+                    Query = string.Format(@"-y -i ""{0}"" -vcodec copy -an ""{1}""", videoFile, destination);
                 else if (string.IsNullOrEmpty(videoFile))
-                    Query = string.Format(@"-y -i ""{0}"" -acodec copy ""{2}""", videoFile, destination);
+                    Query = string.Format(@"-y -i ""{0}"" -acodec copy -vn ""{1}""", videoFile, destination);
                 else
                     Query = string.Format(@"-y -i ""{0}"" -i ""{1}"" -acodec copy -vcodec copy -map 0:v -map 1:a{2} ""{3}""", videoFile, audioFile, FixAac ? " -bsf:a aac_adtstoasc" : "", destination);
                 Result = Worker.RunFFmpeg(Query);
@@ -54,10 +65,20 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="fileStreams">The list of file streams to include in the output.</param>
         /// <param name="destination">The destination file.</param>
+        /// <returns>The process completion status.</returns>
+        public static CompletionStatus Muxe(IEnumerable<FFmpegStream> fileStreams, string destination) {
+            return Muxe(fileStreams, destination, null);
+        }
+
+        /// <summary>
+        /// Merges the specified list of file streams.
+        /// </summary>
+        /// <param name="fileStreams">The list of file streams to include in the output.</param>
+        /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletedStatus Muxe(IEnumerable<FFmpegStream> fileStreams, string destination, ProcessStartOptions options) {
-            CompletedStatus Result = CompletedStatus.Success;
+        public static CompletionStatus Muxe(IEnumerable<FFmpegStream> fileStreams, string destination, ProcessStartOptions options) {
+            CompletionStatus Result = CompletionStatus.Success;
             List<string> TempFiles = new List<string>();
             File.Delete(destination);
 
@@ -67,12 +88,12 @@ namespace EmergenceGuardian.FFmpeg {
                     string NewFile = item.Path.Substring(0, item.Path.Length - 4) + ".mp4";
                     Result = Muxe(item.Path, null, NewFile, options);
                     TempFiles.Add(NewFile);
-                    if (Result != CompletedStatus.Success)
+                    if (Result != CompletionStatus.Success)
                         break;
                 }
             }
 
-            if (Result == CompletedStatus.Success) {
+            if (Result == CompletionStatus.Success) {
                 // Join audio and video files.
                 StringBuilder Query = new StringBuilder();
                 StringBuilder Map = new StringBuilder();
@@ -123,10 +144,21 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="files">The files to merge.</param>
         /// <param name="destination">The destination file.</param>
+        /// <returns>The process completion status.</returns>
+        public static CompletionStatus ConcatenateFiles(IEnumerable<string> files, string destination) {
+            return ConcatenateFiles(files, destination, null);
+        }
+
+        /// <summary>
+        /// Concatenates (merges) all specified files.
+        /// </summary>
+        /// <param name="files">The files to merge.</param>
+        /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletedStatus ConcatenateFiles(IEnumerable<string> files, string destination, ProcessStartOptions options) {
-            CompletedStatus Result = CompletedStatus.None;
+        public static CompletionStatus ConcatenateFiles(IEnumerable<string> files, string destination, ProcessStartOptions options) {
+            CompletionStatus Result = CompletionStatus.None;
+            
             // Write temp file.
             string TempFile = Path.Combine(Path.GetDirectoryName(destination), "MergeList.txt");
             StringBuilder TempContent = new StringBuilder();
@@ -135,7 +167,7 @@ namespace EmergenceGuardian.FFmpeg {
             }
             File.WriteAllText(TempFile, TempContent.ToString());
 
-            string Query = string.Format(@"-y -f concat -safe 0 -i ""{0}"" -c copy ""{1}""", TempFile, destination);
+            string Query = string.Format(@"-y -f concat -fflags +genpts -async 1 -safe 0 -i ""{0}"" -c copy ""{1}""", TempFile, destination);
 
             FFmpegProcess Worker = new FFmpegProcess(options);
             Result = Worker.RunFFmpeg(Query.ToString());
@@ -145,15 +177,13 @@ namespace EmergenceGuardian.FFmpeg {
         }
 
         /// <summary>
-        /// Get file streams information of specified file via FFmpeg.
+        /// Extracts the video stream from specified file.
         /// </summary>
-        /// <param name="source">The file to get information about.</param>
-        /// <param name="options">The options for starting the process.</param>
-        /// <returns>A FFmpegProcess object containing the file information.</returns>
-        public static FFmpegProcess GetFileInfo(string source, ProcessStartOptions options) {
-            FFmpegProcess Worker = new FFmpeg.FFmpegProcess(options);
-            Worker.RunFFmpeg(string.Format(@"-i ""{0}""", source));
-            return Worker;
+        /// <param name="source">The media file to extract from.</param>
+        /// <param name="destination">The destination file.</param>
+        /// <returns>The process completion status.</returns>
+        public static CompletionStatus ExtractVideo(string source, string destination) {
+            return ExtractVideo(source, destination, null);
         }
 
         /// <summary>
@@ -163,7 +193,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletedStatus ExtractVideo(string source, string destination, ProcessStartOptions options) {
+        public static CompletionStatus ExtractVideo(string source, string destination, ProcessStartOptions options) {
             File.Delete(destination);
             FFmpegProcess Worker = new FFmpeg.FFmpegProcess(options);
             return Worker.RunFFmpeg(string.Format(@"-y -i ""{0}"" -vcodec copy -an ""{1}""", source, destination));
@@ -174,9 +204,19 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="source">The media file to extract from.</param>
         /// <param name="destination">The destination file.</param>
+        /// <returns>The process completion status.</returns>
+        public static CompletionStatus ExtractAudio(string source, string destination) {
+            return ExtractAudio(source, destination, null);
+        }
+
+        /// <summary>
+        /// Extracts the audio stream from specified file.
+        /// </summary>
+        /// <param name="source">The media file to extract from.</param>
+        /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletedStatus ExtractAudio(string source, string destination, ProcessStartOptions options) {
+        public static CompletionStatus ExtractAudio(string source, string destination, ProcessStartOptions options) {
             File.Delete(destination);
             FFmpegProcess Worker = new FFmpeg.FFmpegProcess(options);
             return Worker.RunFFmpeg(string.Format(@"-y -i ""{0}"" -vn -acodec copy ""{1}""", source, destination));

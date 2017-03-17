@@ -13,9 +13,11 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Gets or sets a class that will manage graphical interface instances when DisplayMode = Interface
         /// </summary>
-        public static IUserInterfaceManager UserInterfaceManager { get; set; }
+        public static UserInterfaceManagerBase UserInterfaceManager { get; set; }
         /// <summary>
-        /// Gets or sets the options for starting new processes.
+        /// Occurs when a process needs to be closed. This needs to be managed manually for Console applications.
+        /// See http://stackoverflow.com/a/29274238/3960200
         /// </summary>
+        public static CloseProcessEventHandler CloseProcess;
     }
 }

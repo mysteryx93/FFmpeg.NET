@@ -43,10 +43,11 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Management" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FfmpegBusiness.cs" />
-    <Compile Include="CompletedStatus.cs" />
+    <Compile Include="CompletionStatus.cs" />
     <Compile Include="FFmpegConfig.cs" />
     <Compile Include="FFmpegDisplayMode.cs" />
     <Compile Include="FFmpegParser.cs" />
@@ -54,12 +55,14 @@
     <Compile Include="FFmpegStreamInfo.cs" />
     <Compile Include="FFmpegProcess.cs" />
     <Compile Include="FFmpegStreamType.cs" />
-    <Compile Include="IUserInterfaceManager.cs" />
+    <Compile Include="MediaProcesses.cs" />
+    <Compile Include="UserInterfaceManagerBase.cs" />
+    <Compile Include="MediaInfo.cs" />
     <Compile Include="MediaEncoder.cs" />
     <Compile Include="MediaMuxer.cs" />
     <Compile Include="CompletedEventHandler.cs" />
     <Compile Include="ProcessStartOptions.cs" />
-    <Compile Include="ProgressUpdatedEventHandler.cs" />
+    <Compile Include="EventHandlers.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
