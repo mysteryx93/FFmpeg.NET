@@ -11,15 +11,6 @@ namespace EmergenceGuardian.FFmpeg {
     /// </summary>
     public static class MediaInfo {
         /// <summary>
-        /// Returns all FFmpeg running processes.
-        /// </summary>
-        /// <returns>A list of FFmpeg processes.</returns>
-        public static Process[] GetFFmpegProcesses() {
-            string ProcessName = Path.GetFileNameWithoutExtension(FFmpegConfig.FFmpegPath);
-            return Process.GetProcessesByName(ProcessName);
-        }
-
-        /// <summary>
         /// Gets file streams information of specified file via FFmpeg.
         /// </summary>
         /// <param name="source">The file to get information about.</param>

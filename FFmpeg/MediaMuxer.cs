@@ -146,7 +146,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="destination">The destination file.</param>
         /// <returns>The process completion status.</returns>
         public static CompletionStatus ConcatenateFiles(IEnumerable<string> files, string destination) {
-            return ConcatenateFiles(files, destination, null);
+            return Concatenate(files, destination, null);
         }
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletionStatus ConcatenateFiles(IEnumerable<string> files, string destination, ProcessStartOptions options) {
+        public static CompletionStatus Concatenate(IEnumerable<string> files, string destination, ProcessStartOptions options) {
             CompletionStatus Result = CompletionStatus.None;
             
             // Write temp file.
