@@ -13,7 +13,7 @@
         <TextBlock HorizontalAlignment="Left" Margin="10,39,0,0" Text="Destination" VerticalAlignment="Top"/>
         <Button x:Name="BrowseSource" Content="..." HorizontalAlignment="Left" Margin="318,12,0,0" VerticalAlignment="Top" Width="22" Height="21" TabIndex="2" IsEnabled="{Binding IsMpcPlayer, ElementName=window}" Click="BrowseSource_Click" />
         <Button x:Name="BrowseDestination" Content="..." HorizontalAlignment="Left" Margin="318,38,0,0" VerticalAlignment="Top" Width="22" Height="21" TabIndex="4" IsEnabled="{Binding IsMpcPlayer, ElementName=window}" Click="BrowseDestination_Click" />
-        <TextBlock HorizontalAlignment="Left" Margin="10,60,0,0" Text="Extract audio, encode audio and video separately, and muxe" VerticalAlignment="Top"/>
+        <TextBlock HorizontalAlignment="Left" Margin="79,62,0,0" Text="Encode video to H264/AAC" VerticalAlignment="Top"/>
         <Button x:Name="RunSimpleButton" Content="_Simple" HorizontalAlignment="Left" Margin="79,81,0,0" VerticalAlignment="Top" Width="100" TabIndex="5" Click="RunSimpleButton_Click" />
         <Button x:Name="RunComplexButton" Content="_Complex" HorizontalAlignment="Left" Margin="240,81,0,0" VerticalAlignment="Top" Width="100" TabIndex="6" Click="RunComplexButton_Click" />
     </Grid>
