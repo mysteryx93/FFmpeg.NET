@@ -82,3 +82,5 @@ See ExampleApplication to view FFmpeg.NET in action.
 
 [Etienne Charland](https://www.spiritualselftransformation.com), known as the Emergence Guardian, helps starseeds reconnect with their soul power to accomplish the purpose 
 they came here to do. [You can read his book at Satrimono Publishing.](https://satrimono.com/) Warning: non-geek zone.
+
+You may also be interested in the [Natural Grounding Player, Yin Media Encoder, 432hz Player, Powerliminals Player, and Audio Video Muxer.](https://github.com/mysteryx93/NaturalGroundingPlayer)
