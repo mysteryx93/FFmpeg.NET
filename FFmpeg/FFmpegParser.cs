@@ -159,8 +159,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="text">The raw output line from FFmpeg.</param>
         /// <returns>A FFmpegProgress object.</returns>
-        internal static FFmpegProgress ParseProgress(string text) {
-            FFmpegProgress Result = new FFmpegProgress();
+        internal static FFmpegStatus ParseProgress(string text) {
+            FFmpegStatus Result = new FFmpegStatus();
             // frame=  929 fps=0.0 q=-0.0 size=   68483kB time=00:00:37.00 bitrate=15162.6kbits/s speed=  74x    
             string[] Values = text.Split('=');
             try {

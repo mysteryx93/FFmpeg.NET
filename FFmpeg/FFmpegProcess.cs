@@ -31,9 +31,9 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         public event EventHandler InfoUpdated;
         /// <summary>
-        /// Occurs when progress update is received through FFmpeg's output stream.
+        /// Occurs when status update is received through FFmpeg's output stream.
         /// </summary>
-        public event ProgressUpdatedEventHandler ProgressUpdated;
+        public event StatusUpdatedEventHandler StatusUpdated;
         /// <summary>
         /// Occurs when the process has terminated its work.
         /// </summary>
@@ -65,8 +65,6 @@ namespace EmergenceGuardian.FFmpeg {
         private bool isFFmpeg;
         private bool isStarted;
         private CancellationTokenSource cancelWork;
-        private List<KeyValuePair<DateTime, long>> progressHistory;
-        private bool nestedProcess;
 
         /// <summary>
         /// Initializes a new instances of the FFmpegProcess class.
@@ -151,14 +149,12 @@ namespace EmergenceGuardian.FFmpeg {
             Process P = new Process();
             this.isFFmpeg = isFFmpeg;
             WorkProcess = P;
-            this.nestedProcess = nestedProcess;
             output = new StringBuilder();
             isStarted = false;
             FileStreams = null;
             FrameCount = 0;
             FileDuration = TimeSpan.Zero;
             cancelWork = new CancellationTokenSource();
-            progressHistory = new List<KeyValuePair<DateTime, long>>();
             if (Options == null)
                 Options = new ProcessStartOptions();
 
@@ -193,7 +189,6 @@ namespace EmergenceGuardian.FFmpeg {
 
             isStarted = false;
             cancelWork = null;
-            progressHistory = null;
             LastCompletionStatus = Result;
             Completed?.Invoke(this, new CompletedEventArgs(Result));
             if ((Result == CompletionStatus.Error || Result == CompletionStatus.Timeout) && Options.DisplayMode == FFmpegDisplayMode.ErrorOnly)
@@ -264,9 +259,8 @@ namespace EmergenceGuardian.FFmpeg {
                     isStarted = true;
 
                 if (isStarted && e.Data.StartsWith("frame=")) {
-                    FFmpegProgress ProgressInfo = FFmpegParser.ParseProgress(e.Data);
-                    CalculateTimeLeft(ProgressInfo);
-                    ProgressUpdated?.Invoke(this, new ProgressUpdatedEventArgs(ProgressInfo));
+                    FFmpegStatus ProgressInfo = FFmpegParser.ParseProgress(e.Data);
+                    StatusUpdated?.Invoke(this, new StatusUpdatedEventArgs(ProgressInfo));
                 }
             }
         }
@@ -280,25 +274,6 @@ namespace EmergenceGuardian.FFmpeg {
             else if (VideoStream != null)
                 FrameCount = (int)(FileDuration.TotalSeconds * VideoStream.FrameRate);
             InfoUpdated?.Invoke(this, new EventArgs());
-        }
-
-        /// <summary>
-        /// Calculates the time left.
-        /// </summary>
-        /// <param name="progress">An object containing the latest progress info.</param>
-        private void CalculateTimeLeft(FFmpegProgress progress) {
-            // progressHistory contains the last 10 progress values.
-            progressHistory.Add(new KeyValuePair<DateTime, long>(DateTime.Now, progress.Frame));
-            if (progressHistory.Count > 10)
-                progressHistory.RemoveAt(0);
-            if (progressHistory.Count > 1) {
-                TimeSpan SampleWorkTime = progressHistory.Last().Key - progressHistory.First().Key;
-                long SampleWorkFrame = progressHistory.Last().Value - progressHistory.First().Value;
-                double ProcessingFps = SampleWorkFrame / SampleWorkTime.TotalSeconds;
-                long WorkLeft = FrameCount - progress.Frame;
-                if (WorkLeft > 0)
-                    progress.EstimatedTimeLeft = TimeSpan.FromSeconds(WorkLeft / ProcessingFps);
-            }
         }
 
         /// <summary>

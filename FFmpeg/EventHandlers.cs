@@ -3,21 +3,21 @@ using System.Diagnostics;
 
 namespace EmergenceGuardian.FFmpeg {
     /// <summary>
-    /// Represents the method that will handle the ProgressUpdated event.
+    /// Represents the method that will handle the StatusUpdated event.
     /// </summary>
-    public delegate void ProgressUpdatedEventHandler(object sender, ProgressUpdatedEventArgs e);
+    public delegate void StatusUpdatedEventHandler(object sender, StatusUpdatedEventArgs e);
 
     /// <summary>
-    /// Provides progress information for the ProgressUpdated event.
+    /// Provides progress information for the StatusUpdated event.
     /// </summary>
-    public class ProgressUpdatedEventArgs : EventArgs {
-        public FFmpegProgress Progress { get; set; }
+    public class StatusUpdatedEventArgs : EventArgs {
+        public FFmpegStatus Status { get; set; }
 
-        public ProgressUpdatedEventArgs() {
+        public StatusUpdatedEventArgs() {
         }
 
-        public ProgressUpdatedEventArgs(FFmpegProgress progress) {
-            Progress = progress;
+        public StatusUpdatedEventArgs(FFmpegStatus progress) {
+            Status = progress;
         }
     }
 

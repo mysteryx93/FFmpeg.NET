@@ -49,8 +49,8 @@ namespace EmergenceGuardian.FFmpeg {
         public static long GetFrameCount(string source, ProcessStartOptions options) {
             long Result = 0;
             FFmpegProcess Worker = new FFmpeg.FFmpegProcess(options);
-            Worker.ProgressUpdated += (sender, e) => {
-                Result = e.Progress.Frame;
+            Worker.StatusUpdated += (sender, e) => {
+                Result = e.Status.Frame;
             };
             Worker.RunFFmpeg(string.Format(@"-i ""{0}"" -f null /dev/null", source));
             return Result;

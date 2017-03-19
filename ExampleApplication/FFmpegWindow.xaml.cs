@@ -21,6 +21,7 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
         private FFmpegProcess task;
         private bool autoClose;
         private string title { get; set; }
+        private TimeLeftCalculator timeCalc;
 
         public void Stop() {
             Dispatcher.Invoke(() => this.Close());
@@ -39,7 +40,7 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
                 if (taskArg.Options.IsMainTask) {
                     host = taskArg;
                     host.InfoUpdated += FFmpeg_InfoUpdated;
-                    host.ProgressUpdated += FFmpeg_ProgressUpdated;
+                    host.StatusUpdated += FFmpeg_StatusUpdated;
                     host.Completed += FFmpeg_Completed;
                     PercentText.Text = 0.ToString("p1");
                     SetPageTitle(PercentText.Text);
@@ -66,21 +67,27 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
         }
 
         private void FFmpeg_InfoUpdated(object sender, EventArgs e) {
-            Dispatcher.Invoke(() => WorkProgressBar.Maximum = host.FrameCount + host.Options.ResumePos);
+            Dispatcher.Invoke(() => {
+                WorkProgressBar.Maximum = host.FrameCount + host.Options.ResumePos;
+                timeCalc = new TimeLeftCalculator(host.FrameCount + host.Options.ResumePos);
+            });
         }
 
         private bool EstimatedTimeLeftToggle = false;
-        private void FFmpeg_ProgressUpdated(object sender, FFmpeg.ProgressUpdatedEventArgs e) {
+        private void FFmpeg_StatusUpdated(object sender, FFmpeg.StatusUpdatedEventArgs e) {
             Dispatcher.Invoke(() => {
-                WorkProgressBar.Value = e.Progress.Frame + host.Options.ResumePos;
+                WorkProgressBar.Value = e.Status.Frame + host.Options.ResumePos;
                 PercentText.Text = (WorkProgressBar.Value / WorkProgressBar.Maximum).ToString("p1");
                 SetPageTitle(PercentText.Text);
-                FpsText.Text = e.Progress.Fps.ToString();
+                FpsText.Text = e.Status.Fps.ToString();
 
                 // Time left will be updated only 1 out of 2 to prevent changing too quick.
                 EstimatedTimeLeftToggle = !EstimatedTimeLeftToggle;
-                if (e.Progress.EstimatedTimeLeft != TimeSpan.Zero && EstimatedTimeLeftToggle)
-                    TimeLeftText.Text = e.Progress.EstimatedTimeLeft.ToString(e.Progress.EstimatedTimeLeft.TotalHours < 1 ? "m\\:ss" : "h\\:mm\\:ss");
+                if (EstimatedTimeLeftToggle) {
+                    TimeSpan TimeLeft = timeCalc?.Calculate(e.Status.Frame + host.Options.ResumePos) ?? TimeSpan.Zero;
+                    if (TimeLeft > TimeSpan.Zero)
+                        TimeLeftText.Text = TimeLeft.ToString(TimeLeft.TotalHours < 1 ? "m\\:ss" : "h\\:mm\\:ss");
+                }
             });
         }
 

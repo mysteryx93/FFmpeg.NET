@@ -51,11 +51,13 @@
     <Compile Include="FFmpegConfig.cs" />
     <Compile Include="FFmpegDisplayMode.cs" />
     <Compile Include="FFmpegParser.cs" />
+    <Compile Include="FFmpegStatus.cs" />
     <Compile Include="FFmpegStream.cs" />
     <Compile Include="FFmpegStreamInfo.cs" />
     <Compile Include="FFmpegProcess.cs" />
     <Compile Include="FFmpegStreamType.cs" />
     <Compile Include="MediaProcesses.cs" />
+    <Compile Include="TimeLeftCalculator.cs" />
     <Compile Include="UserInterfaceManagerBase.cs" />
     <Compile Include="MediaInfo.cs" />
     <Compile Include="MediaEncoder.cs" />
