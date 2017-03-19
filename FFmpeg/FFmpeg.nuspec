@@ -10,7 +10,7 @@
     <projectUrl>https://github.com/mysteryx93/FFmpeg.NET</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>.NET Wrapper for FFmpeg</description>
-    <releaseNotes>Sample and usage info available here https://github.com/mysteryx93/FFmpeg.NET</releaseNotes>
+    <releaseNotes>https://github.com/mysteryx93/FFmpeg.NET/releases</releaseNotes>
     <copyright>Copyright 2017, Emergence Guardian</copyright>
     <tags>ffmpeg ffmpeg-wrapper video-encoding video library .net</tags>
   </metadata>
