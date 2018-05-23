@@ -37,23 +37,29 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="process">The process to close.</param>
         /// <returns>Whether the process was closed.</returns>
         public static bool SoftKill(Process process) {
-            if (FFmpegConfig.CloseProcess != null) {
-                FFmpegConfig.CloseProcess(null, new ProcessEventArgs(process));
-                return process.HasExited;
-            } else {
-                if (AttachConsole((uint)process.Id)) {
-                    SetConsoleCtrlHandler(null, true);
-                    try {
-                        if (!GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0))
-                            return false;
-                        process.WaitForExit();
-                    }
-                    finally {
-                        FreeConsole();
-                        SetConsoleCtrlHandler(null, false);
-                    }
+            ProcessEventArgs Args = new ProcessEventArgs(process);
+            FFmpegConfig.CloseProcess?.Invoke(null, Args);
+            if (!Args.Handled)
+                SoftKillWinApp(process);
+            return process.HasExited;
+        }
+
+        /// <summary>
+        /// Soft closes from a WinForms or WPF process.
+        /// </summary>
+        /// <param name="process">The process to close.</param>
+        public static void SoftKillWinApp(Process process) {
+            if (AttachConsole((uint)process.Id)) {
+                SetConsoleCtrlHandler(null, true);
+                try {
+                    if (!GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0))
+                        return;
+                    process.WaitForExit();
                 }
-                return process.HasExited;
+                finally {
+                    FreeConsole();
+                    SetConsoleCtrlHandler(null, false);
+                }
             }
         }
     }

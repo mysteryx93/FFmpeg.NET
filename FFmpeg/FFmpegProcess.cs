@@ -5,9 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Microsoft.Win32.SafeHandles;
-using System.Management;
-using System.Runtime.InteropServices;
 
 namespace EmergenceGuardian.FFmpeg {
     /// <summary>
@@ -60,9 +57,13 @@ namespace EmergenceGuardian.FFmpeg {
         /// Returns the CompletionStatus of the last operation.
         /// </summary>
         public CompletionStatus LastCompletionStatus { get; private set; }
+        /// <summary>
+        /// Returns the last status data received from DataReceived event.
+        /// </summary>
+        public FFmpegStatus LastStatusReceived { get; private set; }
 
         private StringBuilder output;
-        private bool isFFmpeg;
+        private EncoderApp encoder;
         private bool isStarted;
         private CancellationTokenSource cancelWork;
 
@@ -86,40 +87,56 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="arguments">FFmpeg startup arguments.</param>
         /// <returns>The process completion status.</returns>
         public CompletionStatus RunFFmpeg(string arguments) {
-            return Run(FFmpegConfig.FFmpegPath, arguments, true, false);
+            return Run(FFmpegConfig.FFmpegPath, arguments, EncoderApp.FFmpeg, false);
         }
 
         /// <summary>
         /// Runs FFmpeg with specified arguments through avs2yuv.
         /// </summary>
+        /// <param name="source">The path of the source Avisynth script file.</param>
         /// <param name="arguments">FFmpeg startup arguments.</param>
         /// <returns>The process completion status.</returns>
-        public CompletionStatus RunAvisynthToFFmpeg(string source, string arguments) {
+        public CompletionStatus RunAvisynthToEncoder(string source, string arguments) {
+            return RunAvisynthToEncoder(source, arguments, EncoderApp.FFmpeg, null);
+        }
+
+        /// <summary>
+        /// Runs an encoder (FFmpeg by default) with specified arguments through avs2yuv.
+        /// </summary>
+        /// <param name="source">The path of the source Avisynth script file.</param>
+        /// <param name="arguments">FFmpeg startup arguments.</param>
+        /// <param name="encoderPath">The path of the encoder to run.</param>
+        /// <param name="encoderApp">The type of encoder to run, which alters parsing.</param>
+        /// <returns>The process completion status.</returns>
+        public CompletionStatus RunAvisynthToEncoder(string source, string arguments, EncoderApp encoderApp, string encoderPath) {
             if (!File.Exists(FFmpegConfig.Avs2yuvPath))
-                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.Avs2yuvPath is not found.", FFmpegConfig.FFmpegPath));
-            String Query = string.Format(@"""{0}"" ""{1}"" -o - | ""{2}"" {3}", FFmpegConfig.Avs2yuvPath, source, FFmpegConfig.FFmpegPath, arguments);
-            return RunAsCommand(Query, true);
+                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.Avs2yuvPath is not found.", FFmpegConfig.Avs2yuvPath));
+            String Query = string.Format(@"""{0}"" ""{1}"" -o - | ""{2}"" {3}", FFmpegConfig.Avs2yuvPath, source, encoderPath ?? FFmpegConfig.FFmpegPath, arguments);
+            return RunAsCommand(Query, encoderApp);
         }
 
         /// <summary>
         /// Runs avs2yuv with specified source file. The output will be discarded.
         /// </summary>
         /// <param name="path">The path to the script to run.</param>
-        public void RunAvisynth(string path) {
+        public CompletionStatus RunAvisynth(string path) {
+            if (!File.Exists(FFmpegConfig.Avs2yuvPath))
+                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.Avs2yuvPath is not found.", FFmpegConfig.Avs2yuvPath));
             string TempFile = path + ".out";
             string Args = string.Format(@"""{0}"" -o {1}", path, TempFile);
-            CompletionStatus Result = Run("Encoder\\avs2yuv.exe", Args, false, false);
+            CompletionStatus Result = Run(FFmpegConfig.Avs2yuvPath, Args, EncoderApp.Other, false);
             File.Delete(TempFile);
+            return Result;
         }
 
         /// <summary>
         /// Runs the command as 'cmd /c', allowing the use of command line features such as piping.
         /// </summary>
         /// <param name="cmd">The full command to be executed with arguments.</param>
-        /// <param name="isFFmpeg">Whether to parse the output from FFmpeg.</param>
+        /// <param name="encoder">The type of application being run, which alters parsing.</param>
         /// <returns>The process completion status.</returns>
-        public CompletionStatus RunAsCommand(string cmd, bool isFFmpeg) {
-            return Run("cmd", string.Format(@" /c "" {0} """, cmd), isFFmpeg, true);
+        public CompletionStatus RunAsCommand(string cmd, EncoderApp encoder) {
+            return Run("cmd", string.Format(@"/c "" {0} """, cmd), encoder, true);
         }
 
         /// <summary>
@@ -129,7 +146,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="arguments">The set of arguments to use when starting the application.</param>
         /// <returns>The process completion status.</returns>
         public CompletionStatus Run(string fileName, string arguments) {
-            return Run(fileName, arguments, false, false);
+            return Run(fileName, arguments, EncoderApp.Other, false);
         }
 
         /// <summary>
@@ -137,26 +154,26 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="fileName">The application to start.</param>
         /// <param name="arguments">The set of arguments to use when starting the application.</param>
-        /// <param name="isFFmpeg">Whether to parse the output as FFmpeg.</param>
+        /// <param name="encoder">The type of application being run, which alters parsing.</param>
         /// <param name="nestedProcess">If true, killing the process with kill all sub-processes.</param>
         /// <returns>The process completion status.</returns>
-        public CompletionStatus Run(string fileName, string arguments, bool isFFmpeg, bool nestedProcess) {
+        public CompletionStatus Run(string fileName, string arguments, EncoderApp encoder, bool nestedProcess) {
             if (!File.Exists(FFmpegConfig.FFmpegPath))
                 throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.FFmpegPath is not found.", FFmpegConfig.FFmpegPath));
             if (WorkProcess != null)
                 throw new InvalidOperationException("This instance of FFmpeg is busy. You can run concurrent commands by creating other class instances.");
 
             Process P = new Process();
-            this.isFFmpeg = isFFmpeg;
+            this.encoder = encoder;
             WorkProcess = P;
             output = new StringBuilder();
             isStarted = false;
             FileStreams = null;
-            FrameCount = 0;
             FileDuration = TimeSpan.Zero;
             cancelWork = new CancellationTokenSource();
             if (Options == null)
                 Options = new ProcessStartOptions();
+            FrameCount = Options.FrameCount;
 
             P.StartInfo.FileName = fileName;
             P.StartInfo.Arguments = arguments;
@@ -180,7 +197,8 @@ namespace EmergenceGuardian.FFmpeg {
                     P.PriorityClass = Options.Priority;
             }
             catch { }
-            P.BeginErrorReadLine();
+            if (Options.DisplayMode != FFmpegDisplayMode.Native)
+                P.BeginErrorReadLine();
 
             bool Timeout = Wait();
 
@@ -244,7 +262,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         private void FFmpeg_DataReceived(object sender, DataReceivedEventArgs e) {
             if (e.Data == null) {
-                if (!isStarted && isFFmpeg)
+                if (!isStarted && encoder != EncoderApp.Other)
                     ParseFileInfo();
                 return;
             }
@@ -252,14 +270,23 @@ namespace EmergenceGuardian.FFmpeg {
             output.AppendLine(e.Data);
             DataReceived?.Invoke(sender, e);
 
-            if (isFFmpeg) {
+            if (encoder == EncoderApp.FFmpeg) {
                 if (FileStreams == null && (e.Data.StartsWith("Output ") || e.Data.StartsWith("Press [q] to stop")))
                     ParseFileInfo();
                 if (e.Data.StartsWith("Press [q] to stop") || e.Data.StartsWith("frame="))
                     isStarted = true;
 
                 if (isStarted && e.Data.StartsWith("frame=")) {
-                    FFmpegStatus ProgressInfo = FFmpegParser.ParseProgress(e.Data);
+                    FFmpegStatus ProgressInfo = FFmpegParser.ParseFFmpegProgress(e.Data);
+                    LastStatusReceived = ProgressInfo;
+                    StatusUpdated?.Invoke(this, new StatusUpdatedEventArgs(ProgressInfo));
+                }
+            } else if (encoder == EncoderApp.x264) {
+                if (!isStarted && e.Data.StartsWith("frames "))
+                    isStarted = true;
+                else if (isStarted && e.Data.Length == 48) {
+                    FFmpegStatus ProgressInfo = FFmpegParser.ParseX264Progress(e.Data);
+                    LastStatusReceived = ProgressInfo;
                     StatusUpdated?.Invoke(this, new StatusUpdatedEventArgs(ProgressInfo));
                 }
             }

@@ -31,12 +31,12 @@ namespace EmergenceGuardian.FFmpeg {
         public string ColorMatrix { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
-        public int SAR1 { get; set; }
-        public int SAR2 { get; set; }
-        public int DAR1 { get; set; }
-        public int DAR2 { get; set; }
-        public double PixelAspectRatio { get; set; }
-        public double DisplayAspectRatio { get; set; }
+        public int SAR1 { get; set; } = 1;
+        public int SAR2 { get; set; } = 1;
+        public int DAR1 { get; set; } = 1;
+        public int DAR2 { get; set; } = 1;
+        public double PixelAspectRatio { get; set; } = 1;
+        public double DisplayAspectRatio { get; set; } = 1;
         public double FrameRate { get; set; }
         public int BitDepth { get; set; } = 8;
     }

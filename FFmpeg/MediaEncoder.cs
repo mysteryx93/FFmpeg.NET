@@ -14,11 +14,12 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="source">The file to convert.</param>
         /// <param name="destination">The destination file, ending with .AVI</param>
+        /// <param name="audio">Whether to encode audio.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletionStatus ConvertToAvi(string source, string destination, ProcessStartOptions options) {
+        public static CompletionStatus ConvertToAvi(string source, string destination, bool audio, ProcessStartOptions options) {
             // -vcodec huffyuv or utvideo, -acodec pcm_s16le
-            return Encode(source, "utvideo", "pcm_s16le", null, destination, options);
+            return Encode(source, "utvideo", audio ? "pcm_s16le" : null, null, destination, options);
         }
 
         /// <summary>
@@ -103,7 +104,7 @@ namespace EmergenceGuardian.FFmpeg {
             // Run FFmpeg with query.
             FFmpegProcess Worker = new FFmpeg.FFmpegProcess(options);
             CompletionStatus Result = SourceAvisynth ? 
-                Worker.RunAvisynthToFFmpeg(source, Query.ToString()) : 
+                Worker.RunAvisynthToEncoder(source, Query.ToString()) : 
                 Worker.RunFFmpeg(Query.ToString());
             return Result;
         }

@@ -103,7 +103,7 @@ namespace EmergenceGuardian.FFmpeg {
                     string[] ColorSpaceValues = StreamInfo[1].Split('(', ')');
                     V.ColorSpace = ColorSpaceValues[0];
                     if (ColorSpaceValues.Length > 1) {
-                        string[] ColorRange = ColorSpaceValues[1].Split(';');
+                        string[] ColorRange = ColorSpaceValues[1].Split(new string[] { "; " }, StringSplitOptions.RemoveEmptyEntries);
                         if (ColorRange.Any(c => c == "tv"))
                             V.ColorRange = "tv";
                         else if (ColorRange.Any(c => c == "pc"))
@@ -124,10 +124,12 @@ namespace EmergenceGuardian.FFmpeg {
                         V.DAR2 = int.Parse(Size[7], CultureInfo.InvariantCulture);
                         V.DisplayAspectRatio = Math.Round((double)V.DAR1 / V.DAR2, 3);
                     }
-                    string Fps = StreamInfo.First(s => s.EndsWith("fps"));
-                    Fps = Fps.Substring(0, Fps.Length - 4);
-                    if (Fps != "1k") // sometimes it returns 1k ?
-                        V.FrameRate = double.Parse(Fps, CultureInfo.InvariantCulture);
+                    string Fps = StreamInfo.FirstOrDefault(s => s.EndsWith("fps"));
+                    if (Fps != null && Fps.Length > 4) {
+                        Fps = Fps.Substring(0, Fps.Length - 4);
+                        if (Fps != "1k") // sometimes it returns 1k ?
+                            V.FrameRate = double.Parse(Fps, CultureInfo.InvariantCulture);
+                    }
                 }
                 catch {
                 }
@@ -159,20 +161,65 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="text">The raw output line from FFmpeg.</param>
         /// <returns>A FFmpegProgress object.</returns>
-        internal static FFmpegStatus ParseProgress(string text) {
+        internal static FFmpegStatus ParseFFmpegProgress(string text) {
             FFmpegStatus Result = new FFmpegStatus();
             // frame=  929 fps=0.0 q=-0.0 size=   68483kB time=00:00:37.00 bitrate=15162.6kbits/s speed=  74x    
             string[] Values = text.Split('=');
             try {
-                Result.Frame = int.Parse(Values[1].TrimStart().Split(' ')[0], CultureInfo.InvariantCulture);
-                Result.Fps = float.Parse(Values[2].TrimStart().Split(' ')[0], CultureInfo.InvariantCulture);
-                Result.Quantizer = float.Parse(Values[3].TrimStart().Split(' ')[0], CultureInfo.InvariantCulture);
-                Result.Size = Values[4].TrimStart().Split(' ')[0];
-                Result.Time = TimeSpan.Parse(Values[5].TrimStart().Split(' ')[0], CultureInfo.InvariantCulture);
-                Result.Bitrate = Values[6].TrimStart().Split(' ')[0];
-                string SpeedString = Values[7].Trim().Split('x')[0];
+                Result.Frame = long.Parse(ParseAttribute(text, "frame"), CultureInfo.InvariantCulture);
+                Result.Fps = float.Parse(ParseAttribute(text, "fps"), CultureInfo.InvariantCulture);
+                Result.Quantizer = float.Parse(ParseAttribute(text, "q"), CultureInfo.InvariantCulture);
+                Result.Size = ParseAttribute(text, "size");
+                Result.Time = TimeSpan.Parse(ParseAttribute(text, "time"), CultureInfo.InvariantCulture);
+                Result.Bitrate = ParseAttribute(text, "bitrate");
+                string SpeedString = ParseAttribute(text, "speed");
                 if (SpeedString != "N/A")
-                    Result.Speed = float.Parse(SpeedString, CultureInfo.InvariantCulture);
+                    Result.Speed = float.Parse(SpeedString.TrimEnd('x'), CultureInfo.InvariantCulture);
+            } catch {
+            }
+            return Result;
+        }
+
+        /// <summary>
+        /// Returns the value of specified attribute within a line of text. It will search 'key=' and return the following value until a space is found.
+        /// </summary>
+        /// <param name="text">The line of text to parse.</param>
+        /// <param name="key">The key of the attribute to look for.</param>
+        /// <returns></returns>
+        internal static string ParseAttribute(string text, string key) {
+            int Pos = text.IndexOf(key + "=");
+            if (Pos >= 0) {
+                // Find first non-space character.
+                Pos += key.Length + 1;
+                while (Pos < text.Length && text[Pos] == ' ') {
+                    Pos++;
+                }
+                // Find space after value.
+                int PosEnd = text.IndexOf(' ', Pos);
+                if (PosEnd == -1)
+                    PosEnd = text.Length;
+                return text.Substring(Pos, PosEnd - Pos);
+            } else
+                return null;
+        }
+
+        /// <summary>
+        /// Parses x264's progress into an object.
+        /// </summary>
+        /// <param name="text">The raw output line from FFmpeg.</param>
+        /// <returns>A FFmpegProgress object.</returns>
+        internal static FFmpegStatus ParseX264Progress(string text) {
+            FFmpegStatus Result = new FFmpegStatus();
+            if (text.Length != 48)
+                return Result;
+
+            //      1   0.10  10985.28    0:00:10    22.35 KB  
+            string[] Values = text.Split('=');
+            try {
+                Result.Frame = int.Parse(text.Substring(0, 6).Trim());
+                Result.Fps = float.Parse(text.Substring(6, 7).Trim());
+                Result.Bitrate = text.Substring(13, 10).Trim();
+                Result.Size = text.Substring(34, 12).Trim();
             }
             catch {
             }

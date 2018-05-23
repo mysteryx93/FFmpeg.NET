@@ -35,6 +35,10 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         public long FrameCount { get; set; }
         /// <summary>
+        /// When running several tasks at once, gets or sets the amount of frames for the entire job. If 0, it will be calculated using FrameCount and ResumePos.
+        /// </summary>
+        public long TotalFrameCount { get; set; }
+        /// <summary>
         /// If resuming a job, gets or sets the number of frames that were done previously.
         /// </summary>
         public long ResumePos { get; set; }

@@ -50,6 +50,7 @@ namespace EmergenceGuardian.FFmpeg {
     /// </summary>
     public class ProcessEventArgs : EventArgs {
         public Process Process { get; set; }
+        public bool Handled { get; set; } = false;
 
         public ProcessEventArgs() {
         }

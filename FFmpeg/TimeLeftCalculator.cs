@@ -9,16 +9,25 @@ namespace EmergenceGuardian.FFmpeg {
     /// </summary>
     public class TimeLeftCalculator {
         private KeyValuePair<DateTime, long>[] progressHistory;
-        private int iterator = 0;
-        private bool fullCycle = false;
+        private int iterator;
+        private bool fullCycle;
+        private long lastPos;
         /// <summary>
         /// Gets or sets the total number of frames to encode.
         /// </summary>
-        public long FrameCount { get; private set; }
+        public long FrameCount { get; set; }
         /// <summary>
         /// Gets or sets the number of status entries to store. The larger the number, the slower the time left will change.
         /// </summary>
         public int HistoryLength { get; private set; }
+        /// <summary>
+        /// After calling Calculate, returns the estimated processing time left.
+        /// </summary>
+        public TimeSpan ResultTimeLeft { get; private set; }
+        /// <summary>
+        /// After calling Calculate, returns the estimated processing rate per second.
+        /// </summary>
+        public double ResultFps { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the TimeLeftCalculator class.
@@ -39,14 +48,17 @@ namespace EmergenceGuardian.FFmpeg {
         }
 
         /// <summary>
-        /// Calculates the time left.
+        /// Calculates the time left and fps. Result will be in ResultTimeLeft and ResultFps.
         /// </summary>
         /// <param name="pos">The current frame position.</param>
-        /// <returns>The estimated time left.</returns>
-        public TimeSpan Calculate(long pos) {
+        public void Calculate(long pos) {
             TimeSpan Result = TimeSpan.Zero;
             progressHistory[iterator] = new KeyValuePair<DateTime, long>(DateTime.Now, pos);
+            lastPos = pos;
 
+            // Calculate SampleWorkTime and SampleWorkFrame for each host
+            TimeSpan SampleWorkTime = TimeSpan.Zero;
+            long SampleWorkFrame = 0;
             int PosFirst = -1;
             if (fullCycle) {
                 PosFirst = (iterator + 1) % HistoryLength;
@@ -54,19 +66,19 @@ namespace EmergenceGuardian.FFmpeg {
                 PosFirst = 0;
 
             if (PosFirst > -1) {
-                TimeSpan SampleWorkTime = progressHistory[iterator].Key - progressHistory[PosFirst].Key;
-                long SampleWorkFrame = progressHistory[iterator].Value - progressHistory[PosFirst].Value;
-                double ProcessingFps = SampleWorkFrame / SampleWorkTime.TotalSeconds;
-                long WorkLeft = FrameCount - pos;
-                if (WorkLeft > 0)
-                    Result = TimeSpan.FromSeconds(WorkLeft / ProcessingFps);
+                SampleWorkTime += progressHistory[iterator].Key - progressHistory[PosFirst].Key;
+                SampleWorkFrame += progressHistory[iterator].Value - progressHistory[PosFirst].Value;
             }
+
+            ResultFps = SampleWorkFrame / SampleWorkTime.TotalSeconds;
+            long WorkLeft = FrameCount - pos;
+            if (WorkLeft > 0 && ResultFps > 0)
+                ResultTimeLeft = TimeSpan.FromSeconds(WorkLeft / ResultFps);
+
 
             iterator = (iterator + 1) % HistoryLength;
             if (iterator == 0)
                 fullCycle = true;
-
-            return Result;
         }
     }
 }

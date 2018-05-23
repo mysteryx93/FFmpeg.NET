@@ -34,7 +34,7 @@ namespace EmergenceGuardian.FFmpeg {
 
             // FFMPEG fails to muxe H264 into MKV container. Converting to MP4 and then muxing with the audio, however, works.
             string OriginalVideoFile = videoFile;
-            if ((videoFile.EndsWith(".264") || videoFile.EndsWith(".265")) && destination.ToLower().EndsWith(".mkv")) {
+            if (videoFile != null && (videoFile.EndsWith(".264") || videoFile.EndsWith(".265")) && destination.ToLower().EndsWith(".mkv")) {
                 videoFile = videoFile.Substring(0, videoFile.Length - 4) + ".mp4";
                 Result = Muxe(OriginalVideoFile, null, videoFile, options);
             }
@@ -48,7 +48,7 @@ namespace EmergenceGuardian.FFmpeg {
                 if (string.IsNullOrEmpty(audioFile))
                     Query = string.Format(@"-y -i ""{0}"" -vcodec copy -an ""{1}""", videoFile, destination);
                 else if (string.IsNullOrEmpty(videoFile))
-                    Query = string.Format(@"-y -i ""{0}"" -acodec copy -vn ""{1}""", videoFile, destination);
+                    Query = string.Format(@"-y -i ""{0}"" -acodec copy -vn ""{1}""", audioFile, destination);
                 else
                     Query = string.Format(@"-y -i ""{0}"" -i ""{1}"" -acodec copy -vcodec copy -map 0:v -map 1:a{2} ""{3}""", videoFile, audioFile, FixAac ? " -bsf:a aac_adtstoasc" : "", destination);
                 Result = Worker.RunFFmpeg(Query);
@@ -124,7 +124,7 @@ namespace EmergenceGuardian.FFmpeg {
                 Query.Append(Map);
                 // FFMPEG-encoded AAC streams are invalid and require an extra flag to join.
                 if (fileStreams.Any(f => f.Path.ToLower().EndsWith(".aac")))
-                    Query.Append(" -bsf:a aac_adtstoasc");
+                    Query.Append("-bsf:a aac_adtstoasc ");
                 Query.Append("\"");
                 Query.Append(destination);
                 Query.Append("\"");

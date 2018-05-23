@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>EmergenceGuardian.FFmpeg</id>
-    <version>1.0.1.0</version>
+    <version>1.1.0.0</version>
     <title>FFmpeg.NET</title>
     <authors>Etienne Charland</authors>
     <owners>Etienne Charland</owners>
