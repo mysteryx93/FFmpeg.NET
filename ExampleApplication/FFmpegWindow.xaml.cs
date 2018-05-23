@@ -84,7 +84,8 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
                 // Time left will be updated only 1 out of 2 to prevent changing too quick.
                 EstimatedTimeLeftToggle = !EstimatedTimeLeftToggle;
                 if (EstimatedTimeLeftToggle) {
-                    TimeSpan TimeLeft = timeCalc?.Calculate(e.Status.Frame + host.Options.ResumePos) ?? TimeSpan.Zero;
+                    timeCalc?.Calculate(e.Status.Frame + host.Options.ResumePos);
+                    TimeSpan TimeLeft = timeCalc.ResultTimeLeft;
                     if (TimeLeft > TimeSpan.Zero)
                         TimeLeftText.Text = TimeLeft.ToString(TimeLeft.TotalHours < 1 ? "m\\:ss" : "h\\:mm\\:ss");
                 }

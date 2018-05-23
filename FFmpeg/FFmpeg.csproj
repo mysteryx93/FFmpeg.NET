@@ -2,7 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>EmergenceGuardian.FFmpeg</PackageId>
+    <Version>1.1.0</Version>
+    <Authors>Etienne Charland</Authors>
+    <Company>Emergence Guardian</Company>
+    <Product>FFmpeg.NET</Product>
+    <Description>.NET Wrapper for FFmpeg</Description>
+    <Copyright>Copyright 2017-2018, Emergence Guardian</Copyright>
+    <PackageTags>ffmpeg ffmpeg-wrapper video-encoding video library .net</PackageTags>
+    <PackageReleaseNotes>https://github.com/mysteryx93/FFmpeg.NET/releases</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/mysteryx93/FFmpeg.NET</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/mysteryx93/FFmpeg.NET/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
 </Project>

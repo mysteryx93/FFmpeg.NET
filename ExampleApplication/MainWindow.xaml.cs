@@ -11,7 +11,7 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
     public partial class MainWindow : Window {
         public MainWindow() {
             InitializeComponent();
-            FFmpegConfig.FFmpegPath = @"F:\AVSMeter\ffmpeg.exe";
+            FFmpegConfig.FFmpegPath = @"E:\AVSMeter\ffmpeg.exe";
             FFmpegConfig.UserInterfaceManager = new FFmpegUserInterfaceManager(this);
         }
 
