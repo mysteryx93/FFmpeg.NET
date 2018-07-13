@@ -66,6 +66,7 @@ namespace EmergenceGuardian.FFmpeg {
         private EncoderApp encoder;
         private bool isStarted;
         private CancellationTokenSource cancelWork;
+        private int OutputNullCount = 0;
 
         /// <summary>
         /// Initializes a new instances of the FFmpegProcess class.
@@ -174,6 +175,7 @@ namespace EmergenceGuardian.FFmpeg {
             if (Options == null)
                 Options = new ProcessStartOptions();
             FrameCount = Options.FrameCount;
+            OutputNullCount = 0;
 
             P.StartInfo.FileName = fileName;
             P.StartInfo.Arguments = arguments;
@@ -185,6 +187,7 @@ namespace EmergenceGuardian.FFmpeg {
                     FFmpegConfig.UserInterfaceManager.Display(this);
                 P.StartInfo.CreateNoWindow = true;
                 P.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                P.StartInfo.RedirectStandardOutput = true;
                 P.StartInfo.RedirectStandardError = true;
                 P.StartInfo.UseShellExecute = false;
             }
@@ -195,10 +198,11 @@ namespace EmergenceGuardian.FFmpeg {
             try {
                 if (!P.HasExited)
                     P.PriorityClass = Options.Priority;
-            }
-            catch { }
-            if (Options.DisplayMode != FFmpegDisplayMode.Native)
+            } catch { }
+            if (Options.DisplayMode != FFmpegDisplayMode.Native) {
+                P.BeginOutputReadLine();
                 P.BeginErrorReadLine();
+            }
 
             bool Timeout = Wait();
 
@@ -262,7 +266,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         private void FFmpeg_DataReceived(object sender, DataReceivedEventArgs e) {
             if (e.Data == null) {
-                if (!isStarted && encoder != EncoderApp.Other)
+                // We're reading both Output and Error streams, only parse on 2nd null.
+                if (OutputNullCount++ > 0 && !isStarted && encoder != EncoderApp.Other)
                     ParseFileInfo();
                 return;
             }

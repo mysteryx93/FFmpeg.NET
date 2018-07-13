@@ -13,6 +13,9 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
             InitializeComponent();
             FFmpegConfig.FFmpegPath = @"E:\AVSMeter\ffmpeg.exe";
             FFmpegConfig.UserInterfaceManager = new FFmpegUserInterfaceManager(this);
+
+            FFmpegProcess ffmpeg = new FFmpegProcess();
+            var status = ffmpeg.RunFFmpeg("-version");
         }
 
         //private async void RunButton_Click(object sender, RoutedEventArgs e) {
