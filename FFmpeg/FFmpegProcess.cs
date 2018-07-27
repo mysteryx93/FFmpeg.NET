@@ -66,7 +66,6 @@ namespace EmergenceGuardian.FFmpeg {
         private EncoderApp encoder;
         private bool isStarted;
         private CancellationTokenSource cancelWork;
-        private int OutputNullCount = 0;
 
         /// <summary>
         /// Initializes a new instances of the FFmpegProcess class.
@@ -87,8 +86,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="arguments">FFmpeg startup arguments.</param>
         /// <returns>The process completion status.</returns>
-        public CompletionStatus RunFFmpeg(string arguments) {
-            return Run(FFmpegConfig.FFmpegPath, arguments, EncoderApp.FFmpeg, false);
+        public CompletionStatus RunFFmpeg(string arguments, ProcessOutput output = ProcessOutput.Error) {
+            return Run(FFmpegConfig.FFmpegPath, arguments, EncoderApp.FFmpeg, false, output);
         }
 
         /// <summary>
@@ -120,12 +119,12 @@ namespace EmergenceGuardian.FFmpeg {
         /// Runs avs2yuv with specified source file. The output will be discarded.
         /// </summary>
         /// <param name="path">The path to the script to run.</param>
-        public CompletionStatus RunAvisynth(string path) {
+        public CompletionStatus RunAvisynth(string path, ProcessOutput output = ProcessOutput.Error) {
             if (!File.Exists(FFmpegConfig.Avs2yuvPath))
                 throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.Avs2yuvPath is not found.", FFmpegConfig.Avs2yuvPath));
             string TempFile = path + ".out";
             string Args = string.Format(@"""{0}"" -o {1}", path, TempFile);
-            CompletionStatus Result = Run(FFmpegConfig.Avs2yuvPath, Args, EncoderApp.Other, false);
+            CompletionStatus Result = Run(FFmpegConfig.Avs2yuvPath, Args, EncoderApp.Other, false, output);
             File.Delete(TempFile);
             return Result;
         }
@@ -136,8 +135,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="cmd">The full command to be executed with arguments.</param>
         /// <param name="encoder">The type of application being run, which alters parsing.</param>
         /// <returns>The process completion status.</returns>
-        public CompletionStatus RunAsCommand(string cmd, EncoderApp encoder) {
-            return Run("cmd", string.Format(@"/c "" {0} """, cmd), encoder, true);
+        public CompletionStatus RunAsCommand(string cmd, EncoderApp encoder, ProcessOutput output = ProcessOutput.Error) {
+            return Run("cmd", string.Format(@"/c "" {0} """, cmd), encoder, true, output);
         }
 
         /// <summary>
@@ -146,8 +145,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="fileName">The application to start.</param>
         /// <param name="arguments">The set of arguments to use when starting the application.</param>
         /// <returns>The process completion status.</returns>
-        public CompletionStatus Run(string fileName, string arguments) {
-            return Run(fileName, arguments, EncoderApp.Other, false);
+        public CompletionStatus Run(string fileName, string arguments, ProcessOutput output = ProcessOutput.Error) {
+            return Run(fileName, arguments, EncoderApp.Other, false, output);
         }
 
         /// <summary>
@@ -158,8 +157,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="encoder">The type of application being run, which alters parsing.</param>
         /// <param name="nestedProcess">If true, killing the process with kill all sub-processes.</param>
         /// <returns>The process completion status.</returns>
-        public CompletionStatus Run(string fileName, string arguments, EncoderApp encoder, bool nestedProcess) {
-            if (!File.Exists(FFmpegConfig.FFmpegPath))
+        public CompletionStatus Run(string fileName, string arguments, EncoderApp encoder, bool nestedProcess, ProcessOutput output) {
+            if (!File.Exists(FFmpegConfig.FFmpegPathAbsolute))
                 throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.FFmpegPath is not found.", FFmpegConfig.FFmpegPath));
             if (WorkProcess != null)
                 throw new InvalidOperationException("This instance of FFmpeg is busy. You can run concurrent commands by creating other class instances.");
@@ -167,7 +166,7 @@ namespace EmergenceGuardian.FFmpeg {
             Process P = new Process();
             this.encoder = encoder;
             WorkProcess = P;
-            output = new StringBuilder();
+            this.output = new StringBuilder();
             isStarted = false;
             FileStreams = null;
             FileDuration = TimeSpan.Zero;
@@ -175,20 +174,23 @@ namespace EmergenceGuardian.FFmpeg {
             if (Options == null)
                 Options = new ProcessStartOptions();
             FrameCount = Options.FrameCount;
-            OutputNullCount = 0;
 
             P.StartInfo.FileName = fileName;
             P.StartInfo.Arguments = arguments;
-            P.OutputDataReceived += FFmpeg_DataReceived;
-            P.ErrorDataReceived += FFmpeg_DataReceived;
+            if (output == ProcessOutput.Standard)
+                P.OutputDataReceived += FFmpeg_DataReceived;
+            else if (output == ProcessOutput.Error)
+                P.ErrorDataReceived += FFmpeg_DataReceived;
 
             if (Options.DisplayMode != FFmpegDisplayMode.Native) {
                 if (Options.DisplayMode == FFmpegDisplayMode.Interface && FFmpegConfig.UserInterfaceManager != null)
                     FFmpegConfig.UserInterfaceManager.Display(this);
                 P.StartInfo.CreateNoWindow = true;
                 P.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                P.StartInfo.RedirectStandardOutput = true;
-                P.StartInfo.RedirectStandardError = true;
+                if (output == ProcessOutput.Standard)
+                    P.StartInfo.RedirectStandardOutput = true;
+                else if (output == ProcessOutput.Error)
+                    P.StartInfo.RedirectStandardError = true;
                 P.StartInfo.UseShellExecute = false;
             }
 
@@ -200,8 +202,10 @@ namespace EmergenceGuardian.FFmpeg {
                     P.PriorityClass = Options.Priority;
             } catch { }
             if (Options.DisplayMode != FFmpegDisplayMode.Native) {
-                P.BeginOutputReadLine();
-                P.BeginErrorReadLine();
+                if (output == ProcessOutput.Standard)
+                    P.BeginOutputReadLine();
+                else if (output == ProcessOutput.Error)
+                    P.BeginErrorReadLine();
             }
 
             bool Timeout = Wait();
@@ -215,6 +219,7 @@ namespace EmergenceGuardian.FFmpeg {
             Completed?.Invoke(this, new CompletedEventArgs(Result));
             if ((Result == CompletionStatus.Error || Result == CompletionStatus.Timeout) && Options.DisplayMode == FFmpegDisplayMode.ErrorOnly)
                 FFmpegConfig.UserInterfaceManager?.DisplayError(this);
+
             return Result;
         }
 
@@ -267,7 +272,7 @@ namespace EmergenceGuardian.FFmpeg {
         private void FFmpeg_DataReceived(object sender, DataReceivedEventArgs e) {
             if (e.Data == null) {
                 // We're reading both Output and Error streams, only parse on 2nd null.
-                if (OutputNullCount++ > 0 && !isStarted && encoder != EncoderApp.Other)
+                if (!isStarted && encoder != EncoderApp.Other)
                     ParseFileInfo();
                 return;
             }
@@ -297,7 +302,9 @@ namespace EmergenceGuardian.FFmpeg {
             }
         }
 
+        private bool HasParsed = false;
         private void ParseFileInfo() {
+            HasParsed = true;
             TimeSpan fileDuration;
             FileStreams = FFmpegParser.ParseFileInfo(output.ToString(), out fileDuration);
             FileDuration = fileDuration;

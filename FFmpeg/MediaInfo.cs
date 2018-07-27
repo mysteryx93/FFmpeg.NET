@@ -11,6 +11,25 @@ namespace EmergenceGuardian.FFmpeg {
     /// </summary>
     public static class MediaInfo {
         /// <summary>
+        /// Returns the version information from FFmpeg.
+        /// </summary>
+        /// <returns>A FFmpegProcess object containing the version information.</returns>
+        public static FFmpegProcess GetVersion() {
+            return GetVersion(null);
+        }
+
+        /// <summary>
+        /// Returns the version information from FFmpeg.
+        /// </summary>
+        /// <param name="options">The options for starting the process.</param>
+        /// <returns>A FFmpegProcess object containing the version information.</returns>
+        public static FFmpegProcess GetVersion(ProcessStartOptions options) {
+            FFmpegProcess Worker = new FFmpeg.FFmpegProcess(options);
+            Worker.RunFFmpeg("-version", ProcessOutput.Standard);
+            return Worker;
+        }
+
+        /// <summary>
         /// Gets file streams information of specified file via FFmpeg.
         /// </summary>
         /// <param name="source">The file to get information about.</param>

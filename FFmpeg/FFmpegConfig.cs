@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.IO;
+using System.Reflection;
 
 namespace EmergenceGuardian.FFmpeg {
     public static class FFmpegConfig {
@@ -19,5 +20,9 @@ namespace EmergenceGuardian.FFmpeg {
         /// See http://stackoverflow.com/a/29274238/3960200
         /// </summary>
         public static CloseProcessEventHandler CloseProcess;
+
+        internal static string ApplicationPath => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        internal static string FFmpegPathAbsolute => Path.IsPathRooted(FFmpegPath) ? FFmpegPath : Path.Combine(ApplicationPath, FFmpegPath);
+        internal static string Avs2yuvPathAbsolute => Path.IsPathRooted(Avs2yuvPath) ? Avs2yuvPath : Path.Combine(ApplicationPath, Avs2yuvPath);
     }
 }
