@@ -59,4 +59,23 @@ namespace EmergenceGuardian.FFmpeg {
             Process = process;
         }
     }
+
+    /// <summary>
+    /// Represents the method that will handle the Completed event.
+    /// </summary>
+    public delegate void CompletedEventHandler(object sender, CompletedEventArgs e);
+
+    /// <summary>
+    /// Provides progress information for the Completed event.
+    /// </summary>
+    public class CompletedEventArgs : EventArgs {
+        public CompletionStatus Status { get; set; }
+
+        public CompletedEventArgs() {
+        }
+
+        public CompletedEventArgs(CompletionStatus status) {
+            Status = status;
+        }
+    }
 }

@@ -7,14 +7,148 @@ using System.Text;
 using System.Threading;
 
 namespace EmergenceGuardian.FFmpeg {
+
+    #region Interface
+
     /// <summary>
     /// Executes commands through FFmpeg assembly.
     /// </summary>
-    public class FFmpegProcess {
+    public interface IFFmpegProcess {
         /// <summary>
         /// Gets or sets the options to control the behaviors of the process.
         /// </summary>
-        public ProcessStartOptions Options { get; set; } = new ProcessStartOptions();
+        ProcessStartOptions Options { get; set; }
+        /// <summary>
+        /// Gets the process currently being executed.
+        /// </summary>
+        Process WorkProcess { get; }
+        /// <summary>
+        /// Occurs when the application writes to its output stream.
+        /// </summary>
+        event DataReceivedEventHandler DataReceived;
+        /// <summary>
+        /// Occurs after stream info is read from FFmpeg's output.
+        /// </summary>
+        event EventHandler InfoUpdated;
+        /// <summary>
+        /// Occurs when status update is received through FFmpeg's output stream.
+        /// </summary>
+        event StatusUpdatedEventHandler StatusUpdated;
+        /// <summary>
+        /// Occurs when the process has terminated its work.
+        /// </summary>
+        event CompletedEventHandler Completed;
+        /// <summary>
+        /// Returns the raw console output from FFmpeg.
+        /// </summary>
+        string Output { get; }
+        /// <summary>
+        /// Returns the duration of input file.
+        /// </summary>
+        TimeSpan FileDuration { get; }
+        /// <summary>
+        /// Returns the frame count of input file (estimated).
+        /// </summary>
+        long FrameCount { get; }
+        /// <summary>
+        /// Returns information about input streams.
+        /// </summary>
+        List<FFmpegStreamInfo> FileStreams { get; }
+        /// <summary>
+        /// Returns the CompletionStatus of the last operation.
+        /// </summary>
+        CompletionStatus LastCompletionStatus { get; }
+        /// <summary>
+        /// Returns the last status data received from DataReceived event.
+        /// </summary>
+        FFmpegStatus LastStatusReceived { get; }
+        /// <summary>
+        /// Runs FFmpeg with specified arguments.
+        /// </summary>
+        /// <param name="arguments">FFmpeg startup arguments.</param>
+        /// <returns>The process completion status.</returns>
+        CompletionStatus RunFFmpeg(string arguments, ProcessOutput output = ProcessOutput.Error);
+        /// <summary>
+        /// Runs FFmpeg with specified arguments through avs2yuv.
+        /// </summary>
+        /// <param name="source">The path of the source Avisynth script file.</param>
+        /// <param name="arguments">FFmpeg startup arguments.</param>
+        /// <returns>The process completion status.</returns>
+        CompletionStatus RunAvisynthToEncoder(string source, string arguments);
+        /// <summary>
+        /// Runs an encoder (FFmpeg by default) with specified arguments through avs2yuv.
+        /// </summary>
+        /// <param name="source">The path of the source Avisynth script file.</param>
+        /// <param name="arguments">FFmpeg startup arguments.</param>
+        /// <param name="encoderPath">The path of the encoder to run.</param>
+        /// <param name="encoderApp">The type of encoder to run, which alters parsing.</param>
+        /// <returns>The process completion status.</returns>
+        CompletionStatus RunAvisynthToEncoder(string source, string arguments, EncoderApp encoderApp, string encoderPath);
+        /// <summary>
+        /// Runs avs2yuv with specified source file. The output will be discarded.
+        /// </summary>
+        /// <param name="path">The path to the script to run.</param>
+        CompletionStatus RunAvisynth(string path, ProcessOutput output = ProcessOutput.Error);
+        /// <summary>
+        /// Runs the command as 'cmd /c', allowing the use of command line features such as piping.
+        /// </summary>
+        /// <param name="cmd">The full command to be executed with arguments.</param>
+        /// <param name="encoder">The type of application being run, which alters parsing.</param>
+        /// <returns>The process completion status.</returns>
+        CompletionStatus RunAsCommand(string cmd, EncoderApp encoder, ProcessOutput output = ProcessOutput.Error);
+        /// <summary>
+        /// Runs specified application with specified arguments.
+        /// </summary>
+        /// <param name="fileName">The application to start.</param>
+        /// <param name="arguments">The set of arguments to use when starting the application.</param>
+        /// <returns>The process completion status.</returns>
+        CompletionStatus Run(string fileName, string arguments, ProcessOutput output = ProcessOutput.Error);
+        /// <summary>
+        /// Runs specified application with specified arguments.
+        /// </summary>
+        /// <param name="fileName">The application to start.</param>
+        /// <param name="arguments">The set of arguments to use when starting the application.</param>
+        /// <param name="encoder">The type of application being run, which alters parsing.</param>
+        /// <param name="nestedProcess">If true, killing the process with kill all sub-processes.</param>
+        /// <returns>The process completion status.</returns>
+        CompletionStatus Run(string fileName, string arguments, EncoderApp encoder, bool nestedProcess, ProcessOutput output);
+        /// <summary>
+        /// Cancels the currently running job and terminate its process.
+        /// </summary>
+        void Cancel();
+        /// <summary>
+        /// Gets the first video stream from FileStreams.
+        /// </summary>
+        /// <returns>A FFmpegVideoStreamInfo object.</returns>
+        FFmpegVideoStreamInfo VideoStream { get; }
+        /// <summary>
+        /// Gets the first audio stream from FileStreams.
+        /// </summary>
+        /// <returns>A FFmpegAudioStreamInfo object.</returns>
+        FFmpegAudioStreamInfo AudioStream { get; }
+        /// <summary>
+        /// Returns the full command with arguments being run.
+        /// </summary>
+        string CommandWithArgs { get; }
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Executes commands through FFmpeg assembly.
+    /// </summary>
+    public class FFmpegProcess : IFFmpegProcess {
+
+        #region Declarations / Constructors
+
+        /// <summary>
+        /// Gets or sets the configuration settings for FFmpeg.
+        /// </summary>
+        public IFFmpegConfig Config { get; set; }
+        /// <summary>
+        /// Gets or sets the options to control the behaviors of the process.
+        /// </summary>
+        public ProcessStartOptions Options { get; set; }
         /// <summary>
         /// Gets the process currently being executed.
         /// </summary>
@@ -67,19 +201,16 @@ namespace EmergenceGuardian.FFmpeg {
         private bool isStarted;
         private CancellationTokenSource cancelWork;
 
-        /// <summary>
-        /// Initializes a new instances of the FFmpegProcess class.
-        /// </summary>
-        public FFmpegProcess() {
+        public FFmpegProcess() : this(null, null) { }
+
+        public FFmpegProcess(IFFmpegConfig config) : this(config, null) { }
+
+        public FFmpegProcess(IFFmpegConfig config, ProcessStartOptions options) {
+            this.Config = config ?? new FFmpegConfig();
+            this.Options = options ?? new ProcessStartOptions();
         }
 
-        /// <summary>
-        /// Initializes a new instances of the FFmpegProcess class with specified options.
-        /// </summary>
-        /// <param name="options">The options for starting the process.</param>
-        public FFmpegProcess(ProcessStartOptions options) {
-            Options = options ?? new ProcessStartOptions();
-        }
+        #endregion
 
         /// <summary>
         /// Runs FFmpeg with specified arguments.
@@ -87,7 +218,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="arguments">FFmpeg startup arguments.</param>
         /// <returns>The process completion status.</returns>
         public CompletionStatus RunFFmpeg(string arguments, ProcessOutput output = ProcessOutput.Error) {
-            return Run(FFmpegConfig.FFmpegPath, arguments, EncoderApp.FFmpeg, false, output);
+            return Run(Config.FFmpegPath, arguments, EncoderApp.FFmpeg, false, output);
         }
 
         /// <summary>
@@ -109,9 +240,9 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="encoderApp">The type of encoder to run, which alters parsing.</param>
         /// <returns>The process completion status.</returns>
         public CompletionStatus RunAvisynthToEncoder(string source, string arguments, EncoderApp encoderApp, string encoderPath) {
-            if (!File.Exists(FFmpegConfig.Avs2yuvPath))
-                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.Avs2yuvPath is not found.", FFmpegConfig.Avs2yuvPath));
-            String Query = string.Format(@"""{0}"" ""{1}"" -o - | ""{2}"" {3}", FFmpegConfig.Avs2yuvPath, source, encoderPath ?? FFmpegConfig.FFmpegPath, arguments);
+            if (!File.Exists(Config.Avs2yuvPath))
+                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by Config.Avs2yuvPath is not found.", Config.Avs2yuvPath));
+            String Query = string.Format(@"""{0}"" ""{1}"" -o - | ""{2}"" {3}", Config.Avs2yuvPath, source, encoderPath ?? Config.FFmpegPath, arguments);
             return RunAsCommand(Query, encoderApp);
         }
 
@@ -120,11 +251,11 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="path">The path to the script to run.</param>
         public CompletionStatus RunAvisynth(string path, ProcessOutput output = ProcessOutput.Error) {
-            if (!File.Exists(FFmpegConfig.Avs2yuvPath))
-                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.Avs2yuvPath is not found.", FFmpegConfig.Avs2yuvPath));
+            if (!File.Exists(Config.Avs2yuvPath))
+                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by Config.Avs2yuvPath is not found.", Config.Avs2yuvPath));
             string TempFile = path + ".out";
             string Args = string.Format(@"""{0}"" -o {1}", path, TempFile);
-            CompletionStatus Result = Run(FFmpegConfig.Avs2yuvPath, Args, EncoderApp.Other, false, output);
+            CompletionStatus Result = Run(Config.Avs2yuvPath, Args, EncoderApp.Other, false, output);
             File.Delete(TempFile);
             return Result;
         }
@@ -158,8 +289,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="nestedProcess">If true, killing the process with kill all sub-processes.</param>
         /// <returns>The process completion status.</returns>
         public CompletionStatus Run(string fileName, string arguments, EncoderApp encoder, bool nestedProcess, ProcessOutput output) {
-            if (!File.Exists(FFmpegConfig.FFmpegPathAbsolute))
-                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by FFmpegConfig.FFmpegPath is not found.", FFmpegConfig.FFmpegPath));
+            if (!File.Exists(Config.FFmpegPathAbsolute))
+                throw new FileNotFoundException(string.Format(@"File ""{0}"" specified by Config.FFmpegPath is not found.", Config.FFmpegPath));
             if (WorkProcess != null)
                 throw new InvalidOperationException("This instance of FFmpeg is busy. You can run concurrent commands by creating other class instances.");
 
@@ -183,8 +314,8 @@ namespace EmergenceGuardian.FFmpeg {
                 P.ErrorDataReceived += FFmpeg_DataReceived;
 
             if (Options.DisplayMode != FFmpegDisplayMode.Native) {
-                if (Options.DisplayMode == FFmpegDisplayMode.Interface && FFmpegConfig.UserInterfaceManager != null)
-                    FFmpegConfig.UserInterfaceManager.Display(this);
+                if (Options.DisplayMode == FFmpegDisplayMode.Interface && Config.UserInterfaceManager != null)
+                    Config.UserInterfaceManager.Display(this);
                 P.StartInfo.CreateNoWindow = true;
                 P.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 if (output == ProcessOutput.Standard)
@@ -218,8 +349,9 @@ namespace EmergenceGuardian.FFmpeg {
             LastCompletionStatus = Result;
             Completed?.Invoke(this, new CompletedEventArgs(Result));
             if ((Result == CompletionStatus.Error || Result == CompletionStatus.Timeout) && Options.DisplayMode == FFmpegDisplayMode.ErrorOnly)
-                FFmpegConfig.UserInterfaceManager?.DisplayError(this);
+                Config.UserInterfaceManager?.DisplayError(this);
 
+            WorkProcess = null;
             return Result;
         }
 
@@ -231,9 +363,9 @@ namespace EmergenceGuardian.FFmpeg {
             DateTime StartTime = DateTime.Now;
             while (!WorkProcess.HasExited) {
                 if (cancelWork.Token.IsCancellationRequested && !WorkProcess.HasExited)
-                    MediaProcesses.SoftKill(WorkProcess);
+                    Config.SoftKill(WorkProcess);
                 if (Options.Timeout > TimeSpan.Zero && DateTime.Now - StartTime > Options.Timeout) {
-                    MediaProcesses.SoftKill(WorkProcess);
+                    Config.SoftKill(WorkProcess);
                     return true;
                 }
                 WorkProcess.WaitForExit(500);
@@ -302,9 +434,9 @@ namespace EmergenceGuardian.FFmpeg {
             }
         }
 
-        private bool HasParsed = false;
+        //private bool HasParsed = false;
         private void ParseFileInfo() {
-            HasParsed = true;
+            //HasParsed = true;
             TimeSpan fileDuration;
             FileStreams = FFmpegParser.ParseFileInfo(output.ToString(), out fileDuration);
             FileDuration = fileDuration;

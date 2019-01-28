@@ -5,10 +5,13 @@ using System.Linq;
 using System.Text;
 
 namespace EmergenceGuardian.FFmpeg {
+
+    #region Interface
+
     /// <summary>
     /// Provides functions to encode media files.
     /// </summary>
-    public static class MediaEncoder {
+    public interface IMediaEncoder {
         /// <summary>
         /// Converts specified file into AVI UT Video format.
         /// </summary>
@@ -17,7 +20,60 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="audio">Whether to encode audio.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletionStatus ConvertToAvi(string source, string destination, bool audio, ProcessStartOptions options) {
+        CompletionStatus ConvertToAvi(string source, string destination, bool audio, ProcessStartOptions options);
+        /// <summary>
+        /// Encodes a media file with specified arguments. 
+        /// </summary>
+        /// <param name="source">The file to convert.</param>
+        /// <param name="videoCodec">The codec to use to encode the video stream.</param>
+        /// <param name="audioCodec">The codec to use to encode the audio stream.</param>
+        /// <param name="encodeArgs">Additional arguments to pass to FFmpeg.</param>
+        /// <param name="destination">The destination file.</param>
+        /// <param name="options">The options for starting the process.</param>
+        /// <returns>The process completion status.</returns>
+        CompletionStatus Encode(string source, string videoCodec, string audioCodec, string encodeArgs, string destination, ProcessStartOptions options);
+        /// <summary>
+        /// Encodes a media file with specified arguments. 
+        /// </summary>
+        /// <param name="source">The file to convert.</param>
+        /// <param name="videoCodec">The codec(s) to use to encode the video stream(s).</param>
+        /// <param name="audioCodec">The codec(s) to use to encode the audio stream(s).</param>
+        /// <param name="encodeArgs">Additional arguments to pass to FFmpeg.</param>
+        /// <param name="destination">The destination file.</param>
+        /// <param name="options">The options for starting the process.</param>
+        /// <returns>The process completion status.</returns>
+        CompletionStatus Encode(string source, string[] videoCodec, string[] audioCodec, string encodeArgs, string destination, ProcessStartOptions options);
+
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Provides functions to encode media files.
+    /// </summary>
+    public class MediaEncoder : IMediaEncoder {
+
+        #region Declarations / Constructors
+
+        protected IFFmpegProcessFactory factory;
+
+        public MediaEncoder() : this(new FFmpegProcessFactory()) { }
+
+        public MediaEncoder(IFFmpegProcessFactory processFactory) {
+            this.factory = processFactory ?? throw new ArgumentNullException(nameof(processFactory));
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Converts specified file into AVI UT Video format.
+        /// </summary>
+        /// <param name="source">The file to convert.</param>
+        /// <param name="destination">The destination file, ending with .AVI</param>
+        /// <param name="audio">Whether to encode audio.</param>
+        /// <param name="options">The options for starting the process.</param>
+        /// <returns>The process completion status.</returns>
+        public CompletionStatus ConvertToAvi(string source, string destination, bool audio, ProcessStartOptions options) {
             // -vcodec huffyuv or utvideo, -acodec pcm_s16le
             return Encode(source, "utvideo", audio ? "pcm_s16le" : null, null, destination, options);
         }
@@ -32,7 +88,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletionStatus Encode(string source, string videoCodec, string audioCodec, string encodeArgs, string destination, ProcessStartOptions options) {
+        public CompletionStatus Encode(string source, string videoCodec, string audioCodec, string encodeArgs, string destination, ProcessStartOptions options) {
             string[] VideoCodecList = string.IsNullOrEmpty(videoCodec) ? null : new string[] { videoCodec };
             string[] AudioCodecList = string.IsNullOrEmpty(audioCodec) ? null : new string[] { audioCodec };
             return Encode(source, VideoCodecList, AudioCodecList, encodeArgs, destination, options);
@@ -48,7 +104,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="destination">The destination file.</param>
         /// <param name="options">The options for starting the process.</param>
         /// <returns>The process completion status.</returns>
-        public static CompletionStatus Encode(string source, string[] videoCodec, string[] audioCodec, string encodeArgs, string destination, ProcessStartOptions options) {
+        public CompletionStatus Encode(string source, string[] videoCodec, string[] audioCodec, string encodeArgs, string destination, ProcessStartOptions options) {
             File.Delete(destination);
             StringBuilder Query = new StringBuilder();
             Query.Append("-y -i ");
@@ -102,12 +158,11 @@ namespace EmergenceGuardian.FFmpeg {
             Query.Append("\"");
 
             // Run FFmpeg with query.
-            FFmpegProcess Worker = new FFmpeg.FFmpegProcess(options);
+            IFFmpegProcess Worker = factory.Create(options);
             CompletionStatus Result = SourceAvisynth ? 
                 Worker.RunAvisynthToEncoder(source, Query.ToString()) : 
                 Worker.RunFFmpeg(Query.ToString());
             return Result;
-        }
-        
+        }        
     }
 }

@@ -1,13 +1,55 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace EmergenceGuardian.FFmpeg {
+
+    #region Interface
+
     /// <summary>
     /// Base class to implement a user interface for FFmpeg processes.
     /// </summary>
-    public abstract class UserInterfaceManagerBase {
+    public interface IUserInterfaceManager {
+        /// <summary>
+        /// Gets or sets whether the application has exited.
+        /// </summary>
+        bool AppExited { get; set; }
+        /// <summary>
+        /// Starts a user interface that will receive all tasks with the specified jobId.
+        /// </summary>
+        /// <param name="jobId">The jobId associated with this interface.</param>
+        /// <param name="title">The title to display.</param>
+        void Start(object jobId, string title);
+        /// <summary>
+        /// Closes the user interface for specified jobId.
+        /// </summary>
+        /// <param name="jobId">The jobId to close.</param>
+        void Stop(object jobId);
+        /// <summary>
+        /// Displays a FFmpeg process to the user.
+        /// </summary>
+        /// <param name="host">The FFmpegProcess to display.</param>
+        void Display(FFmpegProcess host);
+        /// <summary>
+        /// When implemented in a derived class, creates the graphical interface window.
+        /// </summary>
+        /// <param name="title">The title to display.</param>
+        /// <param name="autoClose">Whether to automatically close the window after the main task is completed.</param>
+        /// <returns>The newly created user interface window.</returns>
+        IUserInterface CreateUI(string title, bool autoClose);
+        /// <summary>
+        /// When implemented in a derived class, displays an error window.
+        /// </summary>
+        /// <param name="host">The task throwing the error.</param>
+        void DisplayError(FFmpegProcess host);
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Base class to implement a user interface for FFmpeg processes.
+    /// </summary>
+    public abstract class UserInterfaceManagerBase : IUserInterfaceManager {
         private List<UIItem> UIList = new List<UIItem>();
 
         /// <summary>
@@ -79,8 +121,7 @@ namespace EmergenceGuardian.FFmpeg {
                 this.JobId = jobId;
                 this.Value = ui;
             }
-        }
-        
+        }        
     }
 
     /// <summary>

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace EmergenceGuardian.FFmpeg {
     /// <summary>
@@ -50,5 +47,4 @@ namespace EmergenceGuardian.FFmpeg {
         public string BitDepth { get; set; }
         public int Bitrate { get; set; }
     }
-
 }

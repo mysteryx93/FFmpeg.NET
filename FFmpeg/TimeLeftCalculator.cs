@@ -1,13 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace EmergenceGuardian.FFmpeg {
+
+    #region Interface
+
     /// <summary>
     /// Allows calculating the time left for a FFmpeg process.
     /// </summary>
-    public class TimeLeftCalculator {
+    public interface ITimeLeftCalculator {
+        /// <summary>
+        /// Gets or sets the total number of frames to encode.
+        /// </summary>
+        long FrameCount { get; set; }
+        /// <summary>
+        /// Gets or sets the number of status entries to store. The larger the number, the slower the time left will change.
+        /// </summary>
+        int HistoryLength { get; }
+        /// <summary>
+        /// After calling Calculate, returns the estimated processing time left.
+        /// </summary>
+        TimeSpan ResultTimeLeft { get; }
+        /// <summary>
+        /// After calling Calculate, returns the estimated processing rate per second.
+        /// </summary>
+        double ResultFps { get; }
+        /// <summary>
+        /// Calculates the time left and fps. Result will be in ResultTimeLeft and ResultFps.
+        /// </summary>
+        /// <param name="pos">The current frame position.</param>
+        void Calculate(long pos);
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Allows calculating the time left for a FFmpeg process.
+    /// </summary>
+    public class TimeLeftCalculator : ITimeLeftCalculator {
+
+        #region Declarations / Constructors
+
         private KeyValuePair<DateTime, long>[] progressHistory;
         private int iterator;
         private bool fullCycle;
@@ -33,8 +66,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// Initializes a new instance of the TimeLeftCalculator class.
         /// </summary>
         /// <param name="frameCount">The total number of frames to encode.</param>
-        public TimeLeftCalculator(long frameCount) : this(frameCount, 20) {
-        }
+        public TimeLeftCalculator(long frameCount) : this(frameCount, 20) { }
 
         /// <summary>
         /// Initializes a new instance of the TimeLeftCalculator class.
@@ -46,6 +78,8 @@ namespace EmergenceGuardian.FFmpeg {
             this.HistoryLength = historyLength;
             progressHistory = new KeyValuePair<DateTime, long>[historyLength];
         }
+
+        #endregion
 
         /// <summary>
         /// Calculates the time left and fps. Result will be in ResultTimeLeft and ResultFps.

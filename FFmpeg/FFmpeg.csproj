@@ -1,5 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -14,6 +13,10 @@
     <PackageReleaseNotes>https://github.com/mysteryx93/FFmpeg.NET/releases</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/mysteryx93/FFmpeg.NET</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/mysteryx93/FFmpeg.NET/blob/master/LICENSE</PackageLicenseUrl>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>2.0</OldToolsVersion>
   </PropertyGroup>
-
 </Project>
