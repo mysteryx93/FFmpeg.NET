@@ -25,7 +25,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Process terminated with an error.
         /// </summary>
-        Error,
+        Failed,
         /// <summary>
         /// Process has been cancelled by the user.
         /// </summary>
@@ -81,7 +81,7 @@ namespace EmergenceGuardian.FFmpeg {
     /// </summary>
     public enum ProcessOutput {
         None,
-        Standard,
+        Output,
         Error
     }
 }

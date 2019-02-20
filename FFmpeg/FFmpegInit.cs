@@ -8,8 +8,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Returns a ProcessFactory allowing creating new instances of FFmpegProcess.
         /// </summary>
-        public static IFFmpegProcessFactory ProcessFactory => processFactory ?? (processFactory = new FFmpegProcessFactory());
-        private static IFFmpegProcessFactory processFactory;
+        public static IProcessManagerFactory ProcessFactory => processFactory ?? (processFactory = new ProcessManagerFactory());
+        private static IProcessManagerFactory processFactory;
 
         /// <summary>
         /// Returns the FFmpeg configuration settings.

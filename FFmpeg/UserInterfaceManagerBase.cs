@@ -29,19 +29,19 @@ namespace EmergenceGuardian.FFmpeg {
         /// Displays a FFmpeg process to the user.
         /// </summary>
         /// <param name="host">The FFmpegProcess to display.</param>
-        void Display(FFmpegProcess host);
+        void Display(IProcessManager host);
         /// <summary>
         /// When implemented in a derived class, creates the graphical interface window.
         /// </summary>
         /// <param name="title">The title to display.</param>
         /// <param name="autoClose">Whether to automatically close the window after the main task is completed.</param>
         /// <returns>The newly created user interface window.</returns>
-        IUserInterface CreateUI(string title, bool autoClose);
+        IUserInterfaceWindow CreateUI(string title, bool autoClose);
         /// <summary>
         /// When implemented in a derived class, displays an error window.
         /// </summary>
         /// <param name="host">The task throwing the error.</param>
-        void DisplayError(FFmpegProcess host);
+        void DisplayError(IProcessManager host);
     }
 
     #endregion
@@ -55,7 +55,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Gets or sets whether the application has exited.
         /// </summary>
-        public bool AppExited { get; set; }
+        public bool AppExited { get; set; } = false;
 
         /// <summary>
         /// Starts a user interface that will receive all tasks with the specified jobId.
@@ -63,6 +63,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="jobId">The jobId associated with this interface.</param>
         /// <param name="title">The title to display.</param>
         public void Start(object jobId, string title) {
+            if (jobId == null)
+                throw new ArgumentNullException(nameof(jobId));
             if (!AppExited) {
                 if (!UIList.Any(u => u.JobId.Equals(jobId)))
                     UIList.Add(new UIItem(jobId, CreateUI(title, false)));
@@ -84,7 +86,7 @@ namespace EmergenceGuardian.FFmpeg {
         /// Displays a FFmpeg process to the user.
         /// </summary>
         /// <param name="host">The FFmpegProcess to display.</param>
-        public void Display(FFmpegProcess host) {
+        public void Display(IProcessManager host) {
             if (!AppExited) {
                 UIItem UI = null;
                 if (host.Options.JobId != null)
@@ -104,38 +106,23 @@ namespace EmergenceGuardian.FFmpeg {
         /// <param name="title">The title to display.</param>
         /// <param name="autoClose">Whether to automatically close the window after the main task is completed.</param>
         /// <returns>The newly created user interface window.</returns>
-        public abstract IUserInterface CreateUI(string title, bool autoClose);
+        public abstract IUserInterfaceWindow CreateUI(string title, bool autoClose);
         /// <summary>
         /// When implemented in a derived class, displays an error window.
         /// </summary>
         /// <param name="host">The task throwing the error.</param>
-        public abstract void DisplayError(FFmpegProcess host);
+        public abstract void DisplayError(IProcessManager host);
 
         private class UIItem {
             public object JobId { get; set; }
-            public IUserInterface Value { get; set; }
+            public IUserInterfaceWindow Value { get; set; }
 
             public UIItem() { }
 
-            public UIItem(object jobId, IUserInterface ui) {
+            public UIItem(object jobId, IUserInterfaceWindow ui) {
                 this.JobId = jobId;
                 this.Value = ui;
             }
         }        
-    }
-
-    /// <summary>
-    /// Provides an interface that must be implemented by the FFmpeg graphical interface window.
-    /// </summary>
-    public interface IUserInterface {
-        /// <summary>
-        /// Closes the window.
-        /// </summary>
-        void Stop();
-        /// <summary>
-        /// Displays specified process.
-        /// </summary>
-        /// <param name="host">The process to display.</param>
-        void DisplayTask(FFmpegProcess host);
     }
 }

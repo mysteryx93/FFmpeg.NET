@@ -10,11 +10,11 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
             this.parent = parent;
         }
 
-        public override IUserInterface CreateUI(string title, bool autoClose) {
+        public override IUserInterfaceWindow CreateUI(string title, bool autoClose) {
             return Application.Current.Dispatcher.Invoke(() => FFmpegWindow.Instance(parent, title, autoClose));
         }
 
-        public override void DisplayError(FFmpegProcess host) {
+        public override void DisplayError(IProcessManager host) {
             Application.Current.Dispatcher.Invoke(() => FFmpegErrorWindow.Instance(parent, host));
         }
     }

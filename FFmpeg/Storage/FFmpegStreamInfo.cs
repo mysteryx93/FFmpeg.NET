@@ -7,25 +7,21 @@ namespace EmergenceGuardian.FFmpeg {
     public abstract class FFmpegStreamInfo {
         public string RawText { get; set; }
         public int Index { get; set; }
-        public string Format { get; set; }
+        public string Format { get; set; } = "";
 
         /// <summary>
         /// Returns the stream type based on the derived class type.
         /// </summary>
-        public FFmpegStreamType StreamType {
-            get {
-                return this.GetType() == typeof(FFmpegVideoStreamInfo) ? FFmpegStreamType.Video : this.GetType() == typeof(FFmpegAudioStreamInfo) ? FFmpegStreamType.Audio : FFmpegStreamType.None;
-            }
-        }
+        public FFmpegStreamType StreamType => this.GetType() == typeof(FFmpegVideoStreamInfo) ? FFmpegStreamType.Video : this.GetType() == typeof(FFmpegAudioStreamInfo) ? FFmpegStreamType.Audio : FFmpegStreamType.None;
     }
 
     /// <summary>
     /// Represents a video stream with its info.
     /// </summary>
     public class FFmpegVideoStreamInfo : FFmpegStreamInfo {
-        public string ColorSpace { get; set; }
-        public string ColorRange { get; set; }
-        public string ColorMatrix { get; set; }
+        public string ColorSpace { get; set; } = "";
+        public string ColorRange { get; set; } = "";
+        public string ColorMatrix { get; set; } = "";
         public int Width { get; set; }
         public int Height { get; set; }
         public int SAR1 { get; set; } = 1;
@@ -36,6 +32,7 @@ namespace EmergenceGuardian.FFmpeg {
         public double DisplayAspectRatio { get; set; } = 1;
         public double FrameRate { get; set; }
         public int BitDepth { get; set; } = 8;
+        public int Bitrate { get; set; }
     }
 
     /// <summary>
@@ -43,8 +40,8 @@ namespace EmergenceGuardian.FFmpeg {
     /// </summary>
     public class FFmpegAudioStreamInfo : FFmpegStreamInfo {
         public int SampleRate { get; set; }
-        public string Channels { get; set; }
-        public string BitDepth { get; set; }
+        public string Channels { get; set; } = "";
+        public string BitDepth { get; set; } = "";
         public int Bitrate { get; set; }
     }
 }

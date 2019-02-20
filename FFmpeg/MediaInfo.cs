@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace EmergenceGuardian.FFmpeg {
 
@@ -16,40 +11,26 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Returns the version information from FFmpeg.
         /// </summary>
-        /// <returns>A IFFmpegProcess object containing the version information.</returns>
-        IFFmpegProcess GetVersion();
-        /// <summary>
-        /// Returns the version information from FFmpeg.
-        /// </summary>
         /// <param name="options">The options for starting the process.</param>
+        /// <param name="callback">A method that will be called after the process has been started.</param>
         /// <returns>A IFFmpegProcess object containing the version information.</returns>
-        IFFmpegProcess GetVersion(ProcessStartOptions options);
-        /// <summary>
-        /// Gets file streams information of specified file via FFmpeg.
-        /// </summary>
-        /// <param name="source">The file to get information about.</param>
-        /// <returns>A IFFmpegProcess object containing the file information.</returns>
-        IFFmpegProcess GetFileInfo(string source);
+        IProcessManagerFFmpeg GetVersion(ProcessOptionsFFmpeg options = null, ProcessStartedEventHandler callback = null);
         /// <summary>
         /// Gets file streams information of specified file via FFmpeg.
         /// </summary>
         /// <param name="source">The file to get information about.</param>
         /// <param name="options">The options for starting the process.</param>
+        /// <param name="callback">A method that will be called after the process has been started.</param>
         /// <returns>A IFFmpegProcess object containing the file information.</returns>
-        IFFmpegProcess GetFileInfo(string source, ProcessStartOptions options);
-        /// <summary>
-        /// Returns the exact frame count of specified video file.
-        /// </summary>
-        /// <param name="source">The file to get information about.</param>
-        /// <returns>The number of frames in the video.</returns>
-        long GetFrameCount(string source);
+        IProcessManagerFFmpeg GetFileInfo(string source, ProcessOptionsFFmpeg options = null, ProcessStartedEventHandler callback = null);
         /// <summary>
         /// Returns the exact frame count of specified video file.
         /// </summary>
         /// <param name="source">The file to get information about.</param>
         /// <param name="options">The options for starting the process.</param>
+        /// <param name="callback">A method that will be called after the process has been started.</param>
         /// <returns>The number of frames in the video.</returns>
-        long GetFrameCount(string source, ProcessStartOptions options);
+        long GetFrameCount(string source, ProcessOptionsFFmpeg options = null, ProcessStartedEventHandler callback = null);
     }
 
     #endregion
@@ -61,11 +42,11 @@ namespace EmergenceGuardian.FFmpeg {
 
         #region Declarations / Constructors
 
-        protected IFFmpegProcessFactory factory;
+        protected readonly IProcessManagerFactory factory;
 
-        public MediaInfo() : this(new FFmpegProcessFactory()) { }
+        public MediaInfo() : this(new ProcessManagerFactory()) { }
 
-        public MediaInfo(IFFmpegProcessFactory processFactory) {
+        public MediaInfo(IProcessManagerFactory processFactory) {
             this.factory = processFactory ?? throw new ArgumentNullException(nameof(processFactory));
         }
 
@@ -74,19 +55,13 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Returns the version information from FFmpeg.
         /// </summary>
-        /// <returns>A IFFmpegProcess object containing the version information.</returns>
-        public IFFmpegProcess GetVersion() {
-            return GetVersion(null);
-        }
-
-        /// <summary>
-        /// Returns the version information from FFmpeg.
-        /// </summary>
         /// <param name="options">The options for starting the process.</param>
+        /// <param name="callback">A method that will be called after the process has been started.</param>
         /// <returns>A IFFmpegProcess object containing the version information.</returns>
-        public IFFmpegProcess GetVersion(ProcessStartOptions options) {
-            IFFmpegProcess Worker = factory.Create(options);
-            Worker.RunFFmpeg("-version", ProcessOutput.Standard);
+        public IProcessManagerFFmpeg GetVersion(ProcessOptionsFFmpeg options = null, ProcessStartedEventHandler callback = null) {
+            IProcessManagerFFmpeg Worker = factory.CreateFFmpeg(options, callback);
+            Worker.OutputType = ProcessOutput.Output;
+            Worker.RunFFmpeg("-version");
             return Worker;
         }
 
@@ -94,19 +69,13 @@ namespace EmergenceGuardian.FFmpeg {
         /// Gets file streams information of specified file via FFmpeg.
         /// </summary>
         /// <param name="source">The file to get information about.</param>
-        /// <returns>A IFFmpegProcess object containing the file information.</returns>
-        public IFFmpegProcess GetFileInfo(string source) {
-            return GetFileInfo(source, null);
-        }
-
-        /// <summary>
-        /// Gets file streams information of specified file via FFmpeg.
-        /// </summary>
-        /// <param name="source">The file to get information about.</param>
         /// <param name="options">The options for starting the process.</param>
+        /// <param name="callback">A method that will be called after the process has been started.</param>
         /// <returns>A IFFmpegProcess object containing the file information.</returns>
-        public IFFmpegProcess GetFileInfo(string source, ProcessStartOptions options) {
-            IFFmpegProcess Worker = factory.Create(options);
+        public IProcessManagerFFmpeg GetFileInfo(string source, ProcessOptionsFFmpeg options = null, ProcessStartedEventHandler callback = null) {
+            if (string.IsNullOrEmpty(source))
+                throw new ArgumentException("Source cannot be null or empty.", nameof(source));
+            IProcessManagerFFmpeg Worker = factory.CreateFFmpeg(options, callback);
             Worker.RunFFmpeg(string.Format(@"-i ""{0}""", source));
             return Worker;
         }
@@ -115,20 +84,14 @@ namespace EmergenceGuardian.FFmpeg {
         /// Returns the exact frame count of specified video file.
         /// </summary>
         /// <param name="source">The file to get information about.</param>
-        /// <returns>The number of frames in the video.</returns>
-        public long GetFrameCount(string source) {
-            return GetFrameCount(source, null);
-        }
-        
-        /// <summary>
-        /// Returns the exact frame count of specified video file.
-        /// </summary>
-        /// <param name="source">The file to get information about.</param>
         /// <param name="options">The options for starting the process.</param>
+        /// <param name="callback">A method that will be called after the process has been started.</param>
         /// <returns>The number of frames in the video.</returns>
-        public long GetFrameCount(string source, ProcessStartOptions options) {
+        public long GetFrameCount(string source, ProcessOptionsFFmpeg options = null, ProcessStartedEventHandler callback = null) {
+            if (string.IsNullOrEmpty(source))
+                throw new ArgumentException("Source cannot be null or empty.", nameof(source));
             long Result = 0;
-            IFFmpegProcess Worker = factory.Create(options);
+            IProcessManagerFFmpeg Worker = factory.CreateFFmpeg(options, callback);
             Worker.StatusUpdated += (sender, e) => {
                 Result = e.Status.Frame;
             };

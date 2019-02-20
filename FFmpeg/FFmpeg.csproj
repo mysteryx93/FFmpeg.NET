@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net46</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>EmergenceGuardian.FFmpeg</PackageId>
     <Version>1.1.2</Version>
@@ -18,5 +18,6 @@
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
     <OldToolsVersion>2.0</OldToolsVersion>
+    <RootNamespace>EmergenceGuardian.FFmpeg</RootNamespace>
   </PropertyGroup>
 </Project>

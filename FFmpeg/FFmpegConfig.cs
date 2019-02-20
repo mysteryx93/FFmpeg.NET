@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
+using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
+using EmergenceGuardian.FFmpeg.Services;
 
 namespace EmergenceGuardian.FFmpeg {
 
@@ -36,23 +36,23 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Returns the absolute path of FFmpeg as defined in settings.
         /// </summary>
-        string FFmpegPathAbsolute { get; }
+        //string FFmpegPathAbsolute { get; }
         /// <summary>
         /// Returns the absolute path of Avs2yuv as defined in settings.
         /// </summary>
-        string Avs2yuvPathAbsolute { get; }
+        //string Avs2yuvPathAbsolute { get; }
         /// <summary>
         /// Returns all FFmpeg running processes.
         /// </summary>
         /// <returns>A list of FFmpeg processes.</returns>
-        Process[] GetFFmpegProcesses();
+        IProcess[] GetFFmpegProcesses();
         /// <summary>
         /// Soft closes a process. This will work on WinForms and WPF, but needs to be managed differently for Console applications.
         /// See http://stackoverflow.com/a/29274238/3960200
         /// </summary>
         /// <param name="process">The process to close.</param>
         /// <returns>Whether the process was closed.</returns>
-        bool SoftKill(Process process);
+        bool SoftKill(IProcess process);
     }
 
     #endregion
@@ -61,6 +61,12 @@ namespace EmergenceGuardian.FFmpeg {
     /// Contains the configuration settings for FFmpeg.
     /// </summary>
     public class FFmpegConfig : IFFmpegConfig {
+
+        #region Declarations / Constructors
+
+        protected readonly IWindowsApiService api;
+        protected readonly IFileSystemService fileSystem;
+
         public FFmpegConfig() { }
 
         public FFmpegConfig(string ffmpegPath) : this(ffmpegPath, null) { }
@@ -68,7 +74,16 @@ namespace EmergenceGuardian.FFmpeg {
         public FFmpegConfig(string ffmpegPath, IUserInterfaceManager userInterfaceManager) {
             this.FFmpegPath = ffmpegPath;
             this.UserInterfaceManager = userInterfaceManager;
+            this.api = new WindowsApiService();
+            this.fileSystem = new FileSystemService();
         }
+
+        public FFmpegConfig(IWindowsApiService winApi, IFileSystemService fileSystemService) {
+            this.api = winApi ?? throw new ArgumentNullException(nameof(winApi));
+            this.fileSystem = fileSystemService ?? throw new ArgumentNullException(nameof(fileSystemService));
+        }
+
+        #endregion
 
         /// <summary>
         /// Gets or sets the path to FFmpeg.exe
@@ -90,15 +105,24 @@ namespace EmergenceGuardian.FFmpeg {
         /// <summary>
         /// Gets the path of the executing assembly.
         /// </summary>
-        public string ApplicationPath => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        public string ApplicationPath => fileSystem.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         /// <summary>
         /// Returns the absolute path of FFmpeg as defined in settings.
         /// </summary>
-        public string FFmpegPathAbsolute => Path.IsPathRooted(FFmpegPath) ? FFmpegPath : Path.Combine(ApplicationPath, FFmpegPath);
+        //public string FFmpegPathAbsolute => GetAbsolutePath(FFmpegPath);
         /// <summary>
         /// Returns the absolute path of Avs2yuv as defined in settings.
         /// </summary>
-        public string Avs2yuvPathAbsolute => Path.IsPathRooted(Avs2yuvPath) ? Avs2yuvPath : Path.Combine(ApplicationPath, Avs2yuvPath);
+        //public string Avs2yuvPathAbsolute => GetAbsolutePath(Avs2yuvPath);
+        /// <summary>
+        /// Returns the absolute path for specified absolute or relative path, using the application's path as default folder.
+        /// </summary>
+        /// <param name="path">The path to convert into absolute.</param>
+        //private string GetAbsolutePath(string path) {
+        //    if (path != null)
+        //        return fileSystem.IsPathRooted(path) ? path : fileSystem.Combine(ApplicationPath, path);
+        //    return null;
+        //}
 
         #region Processes
 
@@ -106,22 +130,10 @@ namespace EmergenceGuardian.FFmpeg {
         /// Returns all FFmpeg running processes.
         /// </summary>
         /// <returns>A list of FFmpeg processes.</returns>
-        public Process[] GetFFmpegProcesses() {
-            string ProcessName = Path.GetFileNameWithoutExtension(FFmpegPath);
-            return Process.GetProcessesByName(ProcessName);
+        public IProcess[] GetFFmpegProcesses() {
+            string ProcessName = fileSystem.GetFileNameWithoutExtension(FFmpegPath);
+            return Process.GetProcessesByName(ProcessName).Select(p => new ProcessWrapper(p)).ToArray();
         }
-
-        internal const int CTRL_C_EVENT = 0;
-        [DllImport("kernel32.dll")]
-        internal static extern bool GenerateConsoleCtrlEvent(uint dwCtrlEvent, uint dwProcessGroupId);
-        [DllImport("kernel32.dll", SetLastError = true)]
-        internal static extern bool AttachConsole(uint dwProcessId);
-        [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
-        internal static extern bool FreeConsole();
-        [DllImport("kernel32.dll")]
-        static extern bool SetConsoleCtrlHandler(ConsoleCtrlDelegate HandlerRoutine, bool Add);
-        // Delegate type to be used as the Handler Routine for SCCH
-        private delegate bool ConsoleCtrlDelegate(uint CtrlType);
 
         /// <summary>
         /// Soft closes a process. This will work on WinForms and WPF, but needs to be managed differently for Console applications.
@@ -129,8 +141,8 @@ namespace EmergenceGuardian.FFmpeg {
         /// </summary>
         /// <param name="process">The process to close.</param>
         /// <returns>Whether the process was closed.</returns>
-        public bool SoftKill(Process process) {
-            ProcessEventArgs Args = new ProcessEventArgs(process);
+        public bool SoftKill(IProcess process) {
+            CloseProcessEventArgs Args = new CloseProcessEventArgs(process);
             CloseProcess?.Invoke(null, Args);
             if (!Args.Handled)
                 SoftKillWinApp(process);
@@ -141,16 +153,16 @@ namespace EmergenceGuardian.FFmpeg {
         /// Soft closes from a WinForms or WPF process.
         /// </summary>
         /// <param name="process">The process to close.</param>
-        public void SoftKillWinApp(Process process) {
-            if (AttachConsole((uint)process.Id)) {
-                SetConsoleCtrlHandler(null, true);
+        public void SoftKillWinApp(IProcess process) {
+            if (api.AttachConsole((uint)process.Id)) {
+                api.SetConsoleCtrlHandler(null, true);
                 try {
-                    if (!GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0))
+                    if (!api.GenerateConsoleCtrlEvent())
                         return;
                     process.WaitForExit();
                 } finally {
-                    FreeConsole();
-                    SetConsoleCtrlHandler(null, false);
+                    api.FreeConsole();
+                    api.SetConsoleCtrlHandler(null, false);
                 }
             }
         }

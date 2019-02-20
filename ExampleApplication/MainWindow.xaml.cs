@@ -9,10 +9,17 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window {
+        private IUserInterfaceManager ffmpegManagerUI;
+        private IProcessManagerFactory factory;
+        private IMediaEncoder encoder;
+        private IMediaMuxer muxer;
+
         public MainWindow() {
             InitializeComponent();
-            FFmpegConfig.FFmpegPath = @"E:\AVSMeter\ffmpeg.exe";
-            FFmpegConfig.UserInterfaceManager = new FFmpegUserInterfaceManager(this);
+            ffmpegManagerUI = new FFmpegUserInterfaceManager(this);
+            factory = new ProcessManagerFactory(Properties.Settings.Default.FFmpegPath, ffmpegManagerUI);
+            encoder = new MediaEncoder(factory);
+            muxer = new MediaMuxer(factory);
 
             //FFmpegProcess ffmpeg = new FFmpegProcess();
             //var status = ffmpeg.RunFFmpeg("-version");
@@ -93,11 +100,11 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
 
         private async void RunSimpleButton_Click(object sender, RoutedEventArgs e) {
             if (Validate()) {
-                ProcessStartOptions Options = new ProcessStartOptions(FFmpegDisplayMode.Interface, "Encoding to H264/AAC (Simple)");
+                ProcessOptionsFFmpeg Options = new ProcessOptionsFFmpeg(FFmpegDisplayMode.Interface, "Encoding to H264/AAC (Simple)");
                 string Src = SourceTextBox.Text;
                 string Dst = DestinationTextBox.Text;
                 await Task.Run(() => {
-                    MediaEncoder.Encode(Src, "h264", "aac", null, Dst, Options);
+                    encoder.Encode(Src, "h264", "aac", null, Dst, Options);
                 });
             }
         }
@@ -119,20 +126,18 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
             jobId++;
             CompletionStatus Result;
 
-            FFmpegConfig.UserInterfaceManager.Start(jobId, "Encoding to H264/AAC (Complex)");
+            ffmpegManagerUI.Start(jobId, "Encoding to H264/AAC (Complex)");
 
-            ProcessStartOptions OptionsMain = new ProcessStartOptions(jobId, "", true);
-            FFmpegProcess ProcessMain = null;
-            OptionsMain.Started += (sender, e) => {
-                ProcessMain = e.Process;
-            };
-            Task<CompletionStatus> TaskMain = Task.Run(() => MediaEncoder.Encode(src, "h264", null, "", DstEncode, OptionsMain));
+            ProcessOptionsFFmpeg OptionsMain = new ProcessOptionsFFmpeg(jobId, "", true);
+            IProcessManager ProcessMain = null;
+            Task<CompletionStatus> TaskMain = Task.Run(() => encoder.Encode(src, "h264", null, "", DstEncode, OptionsMain));
 
-            ProcessStartOptions Options = new ProcessStartOptions(jobId, "Extracting Audio", false);
-            Result = MediaMuxer.ExtractAudio(src, DstExtract, Options);
+            ProcessOptionsFFmpeg Options = new ProcessOptionsFFmpeg(jobId, "Extracting Audio", false);
+            Result = muxer.ExtractAudio(src, DstExtract, Options);
             if (Result == CompletionStatus.Success) {
                 Options.Title = "Encoding Audio";
-                Result = MediaEncoder.Encode(DstExtract, null, "aac", null, DstAac, Options);
+                Result = encoder.Encode(DstExtract, null, "aac", null, DstAac, Options, 
+                    (s, p) => ProcessMain = p.ProcessManager);
             }
 
             if (Result != CompletionStatus.Success)
@@ -143,13 +148,13 @@ namespace EmergenceGuardian.FFmpegExampleApplication {
 
             if (Result == CompletionStatus.Success && Result2 == CompletionStatus.Success) {
                 Options.Title = "Muxing Audio and Video";
-                Result = MediaMuxer.Muxe(DstEncode, DstAac, dst, Options);
+                Result = muxer.Muxe(DstEncode, DstAac, dst, Options);
             }
 
             File.Delete(DstEncode);
             File.Delete(DstExtract);
             File.Delete(DstAac);
-            FFmpegConfig.UserInterfaceManager.Stop(jobId);
+            ffmpegManagerUI.Stop(jobId);
             return Result;
         }
 
