@@ -1,6 +1,6 @@
 ﻿# DEPRECATED
 
-Use [EmergenceGuardian.Encoder](https://github.com/mysteryx93/EmergenceGuardian.Encoder) instead.
+Use [HanumanInstitute.FFmpeg](https://github.com/mysteryx93/HanumanInstitute.FFmpeg) instead.
 
 # FFmpeg.NET
 A .NET Wrapper for FFmpeg
